@@ -24,7 +24,7 @@
 async function loadMenu() {
   const today = new Date().toISOString().split("T")[0];
 
-  const { data, error } = await supabase
+  const { data } = await window.supabaseClient
     .from("weekly_menu")
     .select("*")
     .eq("menu_date", today)
@@ -39,7 +39,6 @@ async function loadMenu() {
 }
 
 async function order(menu) {
-
   const now = new Date();
   const hour = now.getHours();
 
@@ -49,9 +48,9 @@ async function order(menu) {
     return;
   }
 
-  const user = await supabase.auth.getUser();
+  const user = await window.supabaseClient.auth.getUser();
 
-  await supabase.from("orders").insert({
+  await window.supabaseClient.from("orders").insert({
     user_id: user.data.user.id,
     order_date: new Date().toISOString().split("T")[0],
     selected_menu: menu,
@@ -62,9 +61,9 @@ async function order(menu) {
 }
 
 async function cancel() {
-  const user = await supabase.auth.getUser();
+  const user = await window.supabaseClient.auth.getUser();
 
-  await supabase
+  await window.supabaseClient
     .from("orders")
     .update({ status: "cancelled" })
     .eq("user_id", user.data.user.id);
