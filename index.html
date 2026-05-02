@@ -20,7 +20,7 @@ body {
   background: white;
   padding: 30px;
   border-radius: 12px;
-  width: 300px;
+  width: 320px;
   text-align: center;
 }
 
@@ -35,16 +35,34 @@ a {
   border-radius: 8px;
   text-decoration: none;
 }
+
+.topbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.topbar button {
+  padding: 8px;
+  background: white;
+  border: none;
+  border-radius: 6px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h1>Mittagessen Bestellung</h1>
+<div class="topbar">
+<button onclick="history.back()">⬅ Zurück</button>
+</div>
 
-  <a href="login.html">Login</a>
-  <a href="admin.html">Admin</a>
+<div class="card">
+<h1>Mittagessen Bestellung</h1>
+
+<a href="login.html">Login</a>
+<a href="admin.html">Admin</a>
+
 </div>
 
 </body>
