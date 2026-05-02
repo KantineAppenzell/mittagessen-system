@@ -109,6 +109,7 @@ button.main {
 
 <script>
 
+// UI SWITCH
 function showRegister() {
   loginBox.style.display = "none";
   registerBox.style.display = "block";
@@ -121,11 +122,11 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔐 REGISTRIEREN
+// 🔐 REGISTRIEREN (FIXED)
 async function register() {
 
   if (!firstname.value || !lastname.value) {
-    status.innerText = "Bitte Name eingeben";
+    status.innerText = "Bitte Vor- und Nachname eingeben";
     return;
   }
 
@@ -139,18 +140,33 @@ async function register() {
     return;
   }
 
-  await window.supabaseClient.from("profiles").insert({
-    id: data.user.id,
-    first_name: firstname.value,
-    last_name: lastname.value,
-    full_name: firstname.value + " " + lastname.value
-  });
+  const user = data.user;
+
+  if (!user) {
+    status.innerText = "User konnte nicht erstellt werden (Email bestätigen?)";
+    return;
+  }
+
+  const { error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .insert({
+      id: user.id,
+      first_name: firstname.value,
+      last_name: lastname.value,
+      full_name: firstname.value + " " + lastname.value
+    });
+
+  if (profileError) {
+    console.error(profileError);
+    status.innerText = "Fehler beim Speichern Profil!";
+    return;
+  }
 
   status.innerText = "Registriert! Jetzt einloggen.";
   showLogin();
 }
 
-// 🔐 LOGIN
+// 🔐 LOGIN MIT PROFIL CHECK
 async function login() {
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -159,7 +175,19 @@ async function login() {
   });
 
   if (error) {
-    status.innerText = "User existiert nicht → bitte registrieren";
+    status.innerText = "Login fehlgeschlagen";
+    return;
+  }
+
+  const profile = await window.supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", data.user.id)
+    .single();
+
+  if (!profile.data) {
+    status.innerText = "Bitte zuerst registrieren!";
+    await window.supabaseClient.auth.signOut();
     return;
   }
 
