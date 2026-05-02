@@ -105,7 +105,7 @@ button.main {
 
   <button class="main" onclick="login()">Login</button>
 
-  <!-- 🔥 NEU -->
+  <!-- 🔥 FIXED RESET -->
   <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
 
   <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
@@ -130,7 +130,7 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔥 REGISTRIERUNG (SMART)
+// 🔥 REGISTRIERUNG
 async function register() {
 
   if (!firstname.value || !lastname.value) {
@@ -228,7 +228,7 @@ async function login() {
   window.location.href = "dashboard.html";
 }
 
-// 🔥 PASSWORD RESET
+// 🔥 PASSWORD RESET (FIX FÜR GITHUB PAGES)
 async function resetPassword() {
 
   if (!email.value) {
@@ -237,7 +237,7 @@ async function resetPassword() {
   }
 
   const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email.value, {
-    redirectTo: window.location.origin + "/reset.html"
+    redirectTo: "https://damian396.github.io/mittagessen-system/reset.html"
   });
 
   if (error) {
