@@ -1,76 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background-color: #14968F;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-.card {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  text-align: center;
-  width: 320px;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-}
-
-button {
-  width: 100%;
-  padding: 10px;
-  background: #14968F;
-  color: white;
-  border: none;
-  border-radius: 6px;
-}
-</style>
+<title>Admin Login</title>
 </head>
 
 <body>
 
-<div class="card">
-<h2>Wochenmenü erfassen</h2>
+<h2>Admin Login</h2>
 
-<input id="date" type="date">
-<input id="menu1" placeholder="Menü 1">
-<input id="menu2" placeholder="Menü 2">
+<input id="user">
+<input id="pw" type="password">
 
-<button onclick="saveMenu()">Speichern</button>
-
-<div id="status"></div>
-</div>
-
-<script src="supabase.js"></script>
+<button onclick="login()">Login</button>
 
 <script>
-async function saveMenu() {
-  const date = document.getElementById("date").value;
-  const menu1 = document.getElementById("menu1").value;
-  const menu2 = document.getElementById("menu2").value;
-
-  const { error } = await window.supabaseClient.from("weekly_menu").insert({
-    menu_date: date,
-    menu_1: menu1,
-    menu_2: menu2
-  });
-
-  document.getElementById("status").innerText =
-    error ? error.message : "Gespeichert!";
+function login() {
+  if (user.value === "AlterszentrumGontenbad" && pw.value === "123456789") {
+    localStorage.setItem("admin_logged", "true");
+    window.location.href = "admin_dashboard.html";
+  } else {
+    alert("Falsch");
+  }
 }
 </script>
 
