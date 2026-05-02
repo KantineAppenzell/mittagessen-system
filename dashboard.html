@@ -1,26 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bestellung</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<title>Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background-color: #14968F;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  width: 320px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #14968F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+</style>
 </head>
 
 <body>
 
+<div class="card">
 <h2>Mittagessen wählen</h2>
 
-<div id="menu">Lade Menü...</div><br>
+<div id="menu">Lade Menü...</div>
 
 <button onclick="order('Menu 1')">Menü 1</button>
 <button onclick="order('Menu 2')">Menü 2</button>
 <button onclick="cancel()">Abmelden</button>
 
-<h3 id="status"></h3>
+<div id="status"></div>
+</div>
 
 <script src="supabase.js"></script>
 
 <script>
-
 async function loadMenu() {
   const today = new Date().toISOString().split("T")[0];
 
@@ -32,22 +64,11 @@ async function loadMenu() {
 
   if (data) {
     document.getElementById("menu").innerHTML =
-      `<b>${data.menu_1}</b><br>${data.menu_2}`;
-  } else {
-    document.getElementById("menu").innerText = "Kein Menü gefunden";
+      data.menu_1 + "<br>" + data.menu_2;
   }
 }
 
 async function order(menu) {
-  const now = new Date();
-  const hour = now.getHours();
-
-  if (hour >= 7) {
-    document.getElementById("status").innerText =
-      "Bestellung für heute geschlossen!";
-    return;
-  }
-
   const user = await window.supabaseClient.auth.getUser();
 
   await window.supabaseClient.from("orders").insert({
@@ -72,7 +93,6 @@ async function cancel() {
 }
 
 loadMenu();
-
 </script>
 
 </body>
