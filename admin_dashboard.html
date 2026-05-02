@@ -60,14 +60,12 @@ button {
 
 <h1>Admin Dashboard</h1>
 
-<!-- EXPORT -->
 <div class="card">
 <h2>Export</h2>
 <button onclick="exportWeek()">PDF Wochenübersicht</button>
 <button onclick="exportStats()">Analyse PDF</button>
 </div>
 
-<!-- TABELLE -->
 <div class="card">
 <h2>Übersicht (2 Wochen)</h2>
 
@@ -85,7 +83,6 @@ button {
 
 </div>
 
-<!-- DETAILS -->
 <div id="detailContainer"></div>
 
 </div>
@@ -94,29 +91,36 @@ button {
 
 <script>
 
-// 🔥 Arbeitstage (rollierend ab heute)
+// 🔥 DATUM FIX (KEIN UTC BUG)
+function formatDateLocal(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${year}-${month}-${day}`;
+}
+
+// 🔥 Arbeitstage
 function getNextWorkdays(count) {
   const days = [];
   let current = new Date();
 
   while (days.length < count) {
-    const d = current.getDay();
-    if (d !== 0 && d !== 6) days.push(new Date(current));
+    const day = current.getDay();
+    if (day !== 0 && day !== 6) {
+      days.push(new Date(current));
+    }
     current.setDate(current.getDate() + 1);
   }
 
   return days;
 }
 
-function formatDate(d) {
-  return d.toISOString().split("T")[0];
-}
-
 function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// 🔥 DATEN LADEN (OHNE JOIN → sicher)
+// 🔥 HAUPTFUNKTION
 async function loadAdminData() {
 
   const days = getNextWorkdays(10);
@@ -128,7 +132,7 @@ async function loadAdminData() {
   console.log("ORDERS:", orders);
 
   if (error) {
-    alert("Fehler beim Laden der Daten");
+    alert("Fehler beim Laden");
     console.log(error);
     return;
   }
@@ -141,14 +145,18 @@ async function loadAdminData() {
 
   days.forEach(day => {
 
-    const dateStr = formatDate(day);
+    const dateStr = formatDateLocal(day);
+
+    // 🔥 DEBUG
+    console.log("Check date:", dateStr);
 
     const dayOrders = orders.filter(o => o.order_date === dateStr);
+
+    console.log("Matches:", dayOrders);
 
     const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
     const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
 
-    // Tabelle
     tbody.innerHTML += `
       <tr>
         <td>${getDayName(day)}</td>
@@ -158,11 +166,10 @@ async function loadAdminData() {
       </tr>
     `;
 
-    // Detail (User-ID anzeigen als Fallback)
     let list = "";
 
     dayOrders.forEach(o => {
-      list += `<li>User: ${o.user_id} → ${o.selected_menu}</li>`;
+      list += `<li>${o.user_id} → ${o.selected_menu}</li>`;
     });
 
     detail.innerHTML += `
@@ -174,7 +181,7 @@ async function loadAdminData() {
   });
 }
 
-// 🔥 EXPORT (KORRIGIERT)
+// 🔥 EXPORT FIX
 async function exportWeek() {
 
   const { jsPDF } = window.jspdf;
@@ -189,19 +196,18 @@ async function exportWeek() {
   let y = 10;
 
   doc.text("Wochenübersicht", 10, y);
-  y += 10;
 
   days.forEach(day => {
 
-    const dateStr = formatDate(day);
+    const dateStr = formatDateLocal(day);
 
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
     const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
     const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
 
-    doc.text(`${dateStr} | Menü1: ${m1} | Menü2: ${m2}`, 10, y);
     y += 8;
+    doc.text(`${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
   });
 
   doc.save("wochenbericht.pdf");
@@ -217,14 +223,12 @@ async function exportStats() {
     .from("orders")
     .select("*");
 
-  const total = data.length;
   const m1 = data.filter(x => x.selected_menu === "Menu 1").length;
   const m2 = data.filter(x => x.selected_menu === "Menu 2").length;
 
-  doc.text("Analyse Gesamt", 10, 10);
-  doc.text(`Total Bestellungen: ${total}`, 10, 20);
-  doc.text(`Menü 1: ${m1}`, 10, 30);
-  doc.text(`Menü 2: ${m2}`, 10, 40);
+  doc.text("Analyse", 10, 10);
+  doc.text(`Menu 1: ${m1}`, 10, 20);
+  doc.text(`Menu 2: ${m2}`, 10, 30);
 
   doc.save("analyse.pdf");
 }
