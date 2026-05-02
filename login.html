@@ -28,14 +28,19 @@ body {
   padding: 10px 14px;
   border-radius: 8px;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .card {
   background: white;
   padding: 30px;
   border-radius: 12px;
-  width: 320px;
+  width: 340px;
   text-align: center;
+}
+
+h2 {
+  color: #14968F;
 }
 
 input {
@@ -44,7 +49,7 @@ input {
   margin: 6px 0;
 }
 
-button {
+button.main {
   width: 100%;
   padding: 10px;
   margin-top: 8px;
@@ -52,6 +57,14 @@ button {
   color: white;
   border: none;
   border-radius: 6px;
+  cursor: pointer;
+}
+
+.switch {
+  margin-top: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #14968F;
 }
 </style>
 </head>
@@ -63,51 +76,96 @@ button {
 </div>
 
 <div class="card">
-<h2>Login / Registrierung</h2>
 
-<input id="firstname" placeholder="Vorname">
-<input id="lastname" placeholder="Nachname">
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Passwort">
+<h2 id="title">Login</h2>
 
-<button onclick="signUp()">Registrieren</button>
-<button onclick="login()">Login</button>
+<!-- REGISTRIERUNG -->
+<div id="registerBox" style="display:none;">
+  <input id="firstname" placeholder="Vorname">
+  <input id="lastname" placeholder="Nachname">
+  <input id="email_reg" placeholder="Email">
+  <input id="password_reg" type="password" placeholder="Passwort">
+
+  <button class="main" onclick="register()">Registrieren</button>
+
+  <div class="switch" onclick="showLogin()">Schon registriert? Login</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Passwort">
+
+  <button class="main" onclick="login()">Login</button>
+
+  <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
+</div>
 
 <div id="status"></div>
+
 </div>
 
 <script src="supabase.js"></script>
 
 <script>
-async function signUp() {
 
-  const { data, error } = await window.supabaseClient.auth.signUp({
-    email: email.value,
-    password: password.value
-  });
-
-  if (!error) {
-    await window.supabaseClient.from("profiles").insert({
-      id: data.user.id,
-      full_name: firstname.value + " " + lastname.value
-    });
-  }
-
-  status.innerText = error ? error.message : "Registriert!";
+function showRegister() {
+  loginBox.style.display = "none";
+  registerBox.style.display = "block";
+  title.innerText = "Registrieren";
 }
 
+function showLogin() {
+  loginBox.style.display = "block";
+  registerBox.style.display = "none";
+  title.innerText = "Login";
+}
+
+// 🔐 REGISTRIEREN
+async function register() {
+
+  if (!firstname.value || !lastname.value) {
+    status.innerText = "Bitte Name eingeben";
+    return;
+  }
+
+  const { data, error } = await window.supabaseClient.auth.signUp({
+    email: email_reg.value,
+    password: password_reg.value
+  });
+
+  if (error) {
+    status.innerText = error.message;
+    return;
+  }
+
+  await window.supabaseClient.from("profiles").insert({
+    id: data.user.id,
+    first_name: firstname.value,
+    last_name: lastname.value,
+    full_name: firstname.value + " " + lastname.value
+  });
+
+  status.innerText = "Registriert! Jetzt einloggen.";
+  showLogin();
+}
+
+// 🔐 LOGIN
 async function login() {
-  const { error } = await window.supabaseClient.auth.signInWithPassword({
+
+  const { data, error } = await window.supabaseClient.auth.signInWithPassword({
     email: email.value,
     password: password.value
   });
 
   if (error) {
-    status.innerText = error.message;
-  } else {
-    window.location.href = "dashboard.html";
+    status.innerText = "User existiert nicht → bitte registrieren";
+    return;
   }
+
+  window.location.href = "dashboard.html";
 }
+
 </script>
 
 </body>
