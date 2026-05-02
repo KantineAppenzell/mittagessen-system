@@ -107,6 +107,18 @@ button {
 
 <script>
 
+// ---------- TEXT CLEAN (NEU) ----------
+function cleanText(text) {
+  if (!text) return "";
+
+  return text
+    .replace(/&[a-z]+;/gi, "")   // HTML entities entfernen
+    .replace(/&/g, "")           // restliche &
+    .replace(/[^a-zA-ZäöüÄÖÜß\s]/g, "") // nur Buchstaben behalten
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // ---------- HELPERS ----------
 function formatDateLocal(date) {
   const d = new Date(date);
@@ -259,6 +271,7 @@ async function exportWeek() {
 
   doc.text("Wochenübersicht", 10, y);
 
+  // Übersicht
   days.forEach(day => {
 
     const dateStr = formatDateLocal(day);
@@ -274,6 +287,7 @@ async function exportWeek() {
   y += 10;
   doc.text("Details", 10, y);
 
+  // Details mit CLEAN FIX
   days.forEach(day => {
 
     const dateStr = formatDateLocal(day);
@@ -291,7 +305,9 @@ async function exportWeek() {
     dayOrders.forEach(o => {
 
       const user = profiles.find(p => p.id === o.user_id);
-      const name = user ? user.full_name : "Unbekannt";
+      const rawName = user ? user.full_name : "Unbekannt";
+
+      const name = cleanText(rawName); // 🔥 HIER IST DER FIX
 
       y += 5;
       doc.text(`- ${name} → ${o.selected_menu}`, 10, y);
