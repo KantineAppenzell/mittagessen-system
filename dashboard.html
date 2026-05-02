@@ -10,175 +10,139 @@ body {
   margin: 0;
   font-family: Arial;
   background-color: #14968F;
-  padding: 20px;
+  color: white;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px;
 }
 
 .card {
   background: white;
+  color: black;
   padding: 20px;
   border-radius: 12px;
-  max-width: 900px;
-  margin: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-}
-
-th {
-  background: #14968F;
-  color: white;
+  margin-bottom: 20px;
 }
 
 button {
-  padding: 5px;
-  margin: 2px;
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 5px;
-}
-
-.selected {
-  background: #2ecc71 !important;
-}
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  padding: 8px;
+  margin: 5px;
+  cursor: pointer;
 }
 </style>
 </head>
 
 <body>
 
-<div class="card">
+<div class="container">
 
-<div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
-<button onclick="logout()">Logout</button>
-</div>
+<h1>Mittagessen Bestellung</h1>
 
-<h2>3 Wochen Übersicht</h2>
-
-<h3>Menü Datei</h3>
-<div id="menuFile"></div>
-
-<table id="table"></table>
+<div id="weekContainer"></div>
 
 </div>
 
 <script src="supabase.js"></script>
 
 <script>
-let user;
 
-async function checkUser() {
-  const res = await window.supabaseClient.auth.getUser();
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
 
-  if (!res.data.user) {
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
+}
+
+function getDayName(date) {
+  return ["So","Mo","Di","Mi","Do","Fr","Sa"][date.getDay()];
+}
+
+async function loadDashboard() {
+
+  const user = (await window.supabaseClient.auth.getUser()).data.user;
+
+  if (!user) {
     window.location.href = "login.html";
-  } else {
-    user = res.data.user;
-    loadTable();
-  }
-}
-
-const file = localStorage.getItem("menu_file");
-if (file) {
-  menuFile.innerHTML = `<a href="${file}" target="_blank">Menü öffnen</a>`;
-}
-
-function getDays() {
-  let days = [];
-
-  for (let i = 0; i < 21; i++) {
-    let d = new Date();
-    d.setDate(new Date().getDate() + i);
-
-    if (d.getDay() !== 0 && d.getDay() !== 6) {
-      days.push({
-        date: d.toISOString().split("T")[0],
-        label: d.toLocaleDateString("de-CH")
-      });
-    }
+    return;
   }
 
-  return days;
-}
+  const monday = getMonday(new Date());
 
-async function loadTable() {
-  const days = getDays();
-
-  let html = `<tr>
-<th>Datum</th><th>Menü 1</th><th>Menü 2</th><th>Aktion</th></tr>`;
-
-  for (let day of days) {
-
-    const menu = await window.supabaseClient
-      .from("weekly_menu")
-      .select("*")
-      .eq("menu_date", day.date)
-      .single();
-
-    const order = await window.supabaseClient
-      .from("orders")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("order_date", day.date)
-      .single();
-
-    html += `<tr>
-<td>${day.label}</td>
-
-<td>${menu.data ? menu.data.menu_1 : "-"}<br>
-<button onclick="orderMeal('${day.date}','Menu 1')" ${order.data?.selected_menu==="Menu 1"?"class='selected'":""}>Wählen</button>
-</td>
-
-<td>${menu.data ? menu.data.menu_2 : "-"}<br>
-<button onclick="orderMeal('${day.date}','Menu 2')" ${order.data?.selected_menu==="Menu 2"?"class='selected'":""}>Wählen</button>
-</td>
-
-<td><button onclick="cancel('${day.date}')">Abmelden</button></td>
-</tr>`;
+  const days = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    days.push(d);
   }
 
-  table.innerHTML = html;
-}
+  const { data: orders } = await window.supabaseClient
+    .from("orders")
+    .select("*")
+    .eq("user_id", user.id);
 
-async function orderMeal(date, menu) {
-  await window.supabaseClient.from("orders").upsert({
-    user_id: user.id,
-    order_date: date,
-    selected_menu: menu
+  const container = document.getElementById("weekContainer");
+  container.innerHTML = "";
+
+  days.forEach(day => {
+
+    const dateStr = formatDate(day);
+
+    const myOrder = orders.find(o => o.order_date === dateStr);
+
+    container.innerHTML += `
+      <div class="card">
+        <h3>${getDayName(day)} - ${dateStr}</h3>
+        <p>Deine Bestellung: ${myOrder ? myOrder.selected_menu : "Keine"}</p>
+
+        <button onclick="order('${dateStr}', 'Menu 1')">Menü 1</button>
+        <button onclick="order('${dateStr}', 'Menu 2')">Menü 2</button>
+        <button onclick="cancel('${dateStr}')">Abmelden</button>
+      </div>
+    `;
   });
+}
 
-  loadTable();
+async function order(date, menu) {
+
+  const user = (await window.supabaseClient.auth.getUser()).data.user;
+
+  await window.supabaseClient
+    .from("orders")
+    .upsert({
+      user_id: user.id,
+      order_date: date,
+      selected_menu: menu,
+      status: "ordered"
+    });
+
+  loadDashboard();
 }
 
 async function cancel(date) {
-  await window.supabaseClient.from("orders")
+
+  const user = (await window.supabaseClient.auth.getUser()).data.user;
+
+  await window.supabaseClient
+    .from("orders")
     .delete()
     .eq("user_id", user.id)
     .eq("order_date", date);
 
-  loadTable();
+  loadDashboard();
 }
 
-async function logout() {
-  await window.supabaseClient.auth.signOut();
-  window.location.href = "login.html";
-}
+loadDashboard();
 
-checkUser();
 </script>
 
 </body>
