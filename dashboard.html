@@ -10,8 +10,6 @@ body {
   margin: 0;
   font-family: Arial;
   background-color: #14968F;
-  display: flex;
-  justify-content: center;
   padding: 20px;
 }
 
@@ -19,8 +17,8 @@ body {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  width: 100%;
   max-width: 900px;
+  margin: auto;
 }
 
 table {
@@ -51,6 +49,12 @@ button {
 .selected {
   background: #2ecc71 !important;
 }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
 </style>
 </head>
 
@@ -58,8 +62,12 @@ button {
 
 <div class="card">
 
-<h2>3 Wochen Übersicht</h2>
+<div class="topbar">
+<button onclick="history.back()">⬅ Zurück</button>
 <button onclick="logout()">Logout</button>
+</div>
+
+<h2>3 Wochen Übersicht</h2>
 
 <h3>Menü Datei</h3>
 <div id="menuFile"></div>
@@ -71,7 +79,6 @@ button {
 <script src="supabase.js"></script>
 
 <script>
-
 let user;
 
 async function checkUser() {
@@ -111,14 +118,8 @@ function getDays() {
 async function loadTable() {
   const days = getDays();
 
-  let html = `
-    <tr>
-      <th>Datum</th>
-      <th>Menü 1</th>
-      <th>Menü 2</th>
-      <th>Aktion</th>
-    </tr>
-  `;
+  let html = `<tr>
+<th>Datum</th><th>Menü 1</th><th>Menü 2</th><th>Aktion</th></tr>`;
 
   for (let day of days) {
 
@@ -135,31 +136,19 @@ async function loadTable() {
       .eq("order_date", day.date)
       .single();
 
-    html += `
-      <tr>
-        <td>${day.label}</td>
+    html += `<tr>
+<td>${day.label}</td>
 
-        <td>
-          ${menu.data ? menu.data.menu_1 : "-"}<br>
-          <button onclick="orderMeal('${day.date}','Menu 1')"
-          ${order.data?.selected_menu === "Menu 1" ? "class='selected'" : ""}>
-          Wählen
-          </button>
-        </td>
+<td>${menu.data ? menu.data.menu_1 : "-"}<br>
+<button onclick="orderMeal('${day.date}','Menu 1')" ${order.data?.selected_menu==="Menu 1"?"class='selected'":""}>Wählen</button>
+</td>
 
-        <td>
-          ${menu.data ? menu.data.menu_2 : "-"}<br>
-          <button onclick="orderMeal('${day.date}','Menu 2')"
-          ${order.data?.selected_menu === "Menu 2" ? "class='selected'" : ""}>
-          Wählen
-          </button>
-        </td>
+<td>${menu.data ? menu.data.menu_2 : "-"}<br>
+<button onclick="orderMeal('${day.date}','Menu 2')" ${order.data?.selected_menu==="Menu 2"?"class='selected'":""}>Wählen</button>
+</td>
 
-        <td>
-          <button onclick="cancel('${day.date}')">Abmelden</button>
-        </td>
-      </tr>
-    `;
+<td><button onclick="cancel('${day.date}')">Abmelden</button></td>
+</tr>`;
   }
 
   table.innerHTML = html;
@@ -169,16 +158,14 @@ async function orderMeal(date, menu) {
   await window.supabaseClient.from("orders").upsert({
     user_id: user.id,
     order_date: date,
-    selected_menu: menu,
-    status: "ordered"
+    selected_menu: menu
   });
 
   loadTable();
 }
 
 async function cancel(date) {
-  await window.supabaseClient
-    .from("orders")
+  await window.supabaseClient.from("orders")
     .delete()
     .eq("user_id", user.id)
     .eq("order_date", date);
@@ -192,7 +179,6 @@ async function logout() {
 }
 
 checkUser();
-
 </script>
 
 </body>
