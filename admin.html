@@ -15,8 +15,7 @@
 
 <button onclick="saveMenu()">Speichern</button>
 
-<h3>Bestellungen</h3>
-<div id="orders"></div>
+<h3 id="status"></h3>
 
 <script src="supabase.js"></script>
 
@@ -27,23 +26,15 @@ async function saveMenu() {
   const menu1 = document.getElementById("menu1").value;
   const menu2 = document.getElementById("menu2").value;
 
-  await supabase.from("weekly_menu").insert({
+  const { error } = await supabase.from("weekly_menu").insert({
     menu_date: date,
     menu_1: menu1,
     menu_2: menu2
   });
 
-  alert("Gespeichert!");
+  document.getElementById("status").innerText =
+    error ? error.message : "Gespeichert!";
 }
-
-async function loadOrders() {
-  const { data } = await supabase.from("orders").select("*");
-
-  document.getElementById("orders").innerHTML =
-    JSON.stringify(data, null, 2);
-}
-
-loadOrders();
 
 </script>
 
