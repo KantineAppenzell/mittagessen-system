@@ -3,6 +3,8 @@
 <head>
 <title>Admin Dashboard</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -15,10 +17,23 @@ body {
   color: white;
 }
 
+.topbar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
+
+.topbar button {
+  background: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+}
+
 .container {
-  max-width: 1100px;
+  max-width: 1000px;
   margin: auto;
-  padding: 40px;
+  padding: 70px 15px 20px;
 }
 
 .card {
@@ -29,8 +44,12 @@ body {
   margin-bottom: 20px;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+}
+
 table {
-  width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
 }
 
@@ -42,7 +61,6 @@ th {
 td, th {
   padding: 10px;
   border-bottom: 1px solid #ddd;
-  text-align: center;
 }
 
 button {
@@ -50,47 +68,43 @@ button {
   color: white;
   border: none;
   padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
 }
 
 .file-item {
   border-bottom: 1px solid #ddd;
   padding: 10px;
-  word-break: break-all;
 }
 </style>
 </head>
 
 <body>
 
+<div class="topbar">
+<button onclick="history.back()">⬅ Zurück</button>
+</div>
+
 <div class="container">
 
 <h1>Admin Dashboard</h1>
 
-<!-- 🔥 PDF UPLOAD -->
 <div class="card">
 <h2>Menü PDF Upload</h2>
 <input type="file" id="fileInput">
 <button onclick="uploadPDF()">Upload</button>
 </div>
 
-<!-- 🔥 PDF LISTE -->
 <div class="card">
 <h2>PDF Verwaltung</h2>
 <div id="pdfList">Lade...</div>
 </div>
 
-<!-- 🔥 EXPORT -->
 <div class="card">
 <h2>Export</h2>
 <button onclick="exportWeek()">PDF Export</button>
 </div>
 
-<!-- 🔥 ÜBERSICHT -->
-<div class="card">
+<div class="card table-wrapper">
 <h2>2 Wochen Übersicht</h2>
-
 <table id="summaryTable">
 <thead>
 <tr>
@@ -102,7 +116,6 @@ button {
 </thead>
 <tbody></tbody>
 </table>
-
 </div>
 
 </div>
@@ -148,36 +161,17 @@ function getDayName(d) {
 
 // ---------- PDF UPLOAD ----------
 async function uploadPDF(){
-
   const file = document.getElementById("fileInput").files[0];
-
-  if(!file){
-    alert("Bitte Datei wählen");
-    return;
-  }
+  if(!file) return alert("Bitte Datei wählen");
 
   const fileName = Date.now() + "_" + file.name;
 
-  const { error } = await supabaseClient
-    .storage
-    .from("menus")
-    .upload(fileName, file);
+  const { error } = await supabaseClient.storage.from("menus").upload(fileName, file);
+  if(error) return alert(error.message);
 
-  if(error){
-    alert("Upload Fehler: " + error.message);
-    return;
-  }
+  const { data } = supabaseClient.storage.from("menus").getPublicUrl(fileName);
 
-  const { data } = supabaseClient
-    .storage
-    .from("menus")
-    .getPublicUrl(fileName);
-
-  await supabaseClient
-    .from("menu_files")
-    .insert({
-      file_url: data.publicUrl
-    });
+  await supabaseClient.from("menu_files").insert({ file_url: data.publicUrl });
 
   alert("Upload erfolgreich!");
   loadPDFList();
@@ -185,11 +179,7 @@ async function uploadPDF(){
 
 // ---------- PDF LISTE ----------
 async function loadPDFList(){
-
-  const { data } = await supabaseClient
-    .from("menu_files")
-    .select("*")
-    .order("created_at", { ascending:false });
+  const { data } = await supabaseClient.from("menu_files").select("*").order("created_at", { ascending:false });
 
   const container = document.getElementById("pdfList");
   container.innerHTML = "";
@@ -212,17 +202,13 @@ async function loadPDFList(){
 
 // ---------- DELETE ----------
 async function deletePDF(fileUrl){
-
   if(!confirm("Wirklich löschen?")) return;
 
   const path = fileUrl.split("/menus/")[1];
 
   await supabaseClient.storage.from("menus").remove([path]);
 
-  await supabaseClient
-    .from("menu_files")
-    .delete()
-    .eq("file_url", fileUrl);
+  await supabaseClient.from("menu_files").delete().eq("file_url", fileUrl);
 
   alert("Gelöscht!");
   loadPDFList();
@@ -230,17 +216,13 @@ async function deletePDF(fileUrl){
 
 // ---------- DASHBOARD ----------
 async function loadAdminData() {
-
-  const { data: orders } = await supabaseClient
-    .from("orders")
-    .select("*");
+  const { data: orders } = await supabaseClient.from("orders").select("*");
 
   const days = getNextWorkdays(10);
   const tbody = document.querySelector("#summaryTable tbody");
   tbody.innerHTML = "";
 
   days.forEach(day => {
-
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
@@ -258,9 +240,8 @@ async function loadAdminData() {
   });
 }
 
-// ---------- PDF EXPORT ----------
+// ---------- EXPORT ----------
 async function exportWeek() {
-
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
@@ -272,14 +253,9 @@ async function exportWeek() {
 
   let y = 10;
 
-  doc.setFontSize(14);
   doc.text("Übersicht (2 Wochen)", 10, y);
 
-  doc.setFontSize(10);
-
-  // Übersicht
   days.forEach(day => {
-
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
@@ -291,42 +267,22 @@ async function exportWeek() {
   });
 
   y += 10;
-  doc.setFontSize(12);
-  doc.text("Details (nächste Arbeitstage)", 10, y);
+  doc.text("Details", 10, y);
 
-  doc.setFontSize(10);
-
-  // Details
   detailDays.forEach(day => {
-
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
-    y += 8;
+    y += 6;
     doc.text(`${getDayName(day)} ${dateStr}`, 10, y);
 
-    let leftY = y + 5;
-    let rightY = y + 5;
-
-    dayOrders.forEach((o, index) => {
-
+    dayOrders.forEach(o => {
       const user = profiles.find(p => p.id === o.user_id);
       const name = cleanText(user ? user.full_name : "Unbekannt");
 
-      const text = `${name} (${o.selected_menu} x1)`;
-
-      if (index % 2 === 0) {
-        doc.text(text, 10, leftY);
-        leftY += 6;
-      } else {
-        doc.text(text, 110, rightY);
-        rightY += 6;
-      }
-
+      y += 5;
+      doc.text(`- ${name} (${o.selected_menu} x1)`, 10, y);
     });
-
-    y = Math.max(leftY, rightY) + 5;
-
   });
 
   doc.save("export.pdf");
