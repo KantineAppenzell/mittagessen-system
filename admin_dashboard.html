@@ -6,6 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
@@ -26,7 +27,6 @@ body {
   border: none;
   padding: 8px;
   border-radius: 6px;
-  cursor: pointer;
 }
 
 .container {
@@ -79,12 +79,27 @@ button {
 
 <h1>Admin Dashboard</h1>
 
+<!-- PDF UPLOAD -->
+<div class="card">
+<h2>Menü PDF Upload</h2>
+<input type="file" id="fileInput">
+<button onclick="uploadPDF()">Upload</button>
+</div>
+
+<!-- EXPORT -->
 <div class="card">
 <h2>Export</h2>
 <button onclick="exportWeek()">PDF Wochenübersicht</button>
 <button onclick="exportStats()">Analyse PDF</button>
 </div>
 
+<!-- CHART -->
+<div class="card">
+<h2>Analyse</h2>
+<canvas id="chart"></canvas>
+</div>
+
+<!-- TABELLE -->
 <div class="card">
 <h2>Übersicht (2 Wochen)</h2>
 
@@ -102,6 +117,7 @@ button {
 
 </div>
 
+<!-- DETAILS -->
 <div id="detailContainer"></div>
 
 </div>
@@ -131,23 +147,13 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// ---------- LOAD ----------
+// ---------- LOAD DATA ----------
 async function loadAdminData() {
 
   try {
 
-    if (!window.supabaseClient) {
-      alert("Supabase nicht geladen!");
-      return;
-    }
-
-    const orderRes = await window.supabaseClient
-      .from("orders")
-      .select("*");
-
-    const profileRes = await window.supabaseClient
-      .from("profiles")
-      .select("*");
+    const orderRes = await window.supabaseClient.from("orders").select("*");
+    const profileRes = await window.supabaseClient.from("profiles").select("*");
 
     console.log("ORDERS:", orderRes);
     console.log("PROFILES:", profileRes);
@@ -204,8 +210,49 @@ async function loadAdminData() {
     });
 
   } catch (err) {
-    console.log("CRASH:", err);
-    alert("Admin Fehler – Console prüfen");
+    console.log(err);
+    alert("Admin Fehler");
+  }
+}
+
+// ---------- PDF UPLOAD ----------
+async function uploadPDF() {
+
+  try {
+
+    const file = document.getElementById("fileInput").files[0];
+
+    if (!file) {
+      alert("Bitte Datei wählen");
+      return;
+    }
+
+    const fileName = Date.now() + "_" + file.name;
+
+    const upload = await window.supabaseClient.storage
+      .from("menus")
+      .upload(fileName, file);
+
+    if (upload.error) {
+      console.log(upload.error);
+      alert("Upload Fehler");
+      return;
+    }
+
+    const url = window.supabaseClient
+      .storage
+      .from("menus")
+      .getPublicUrl(fileName).data.publicUrl;
+
+    await window.supabaseClient.from("menu_files").insert({
+      file_url: url
+    });
+
+    alert("PDF erfolgreich hochgeladen!");
+
+  } catch (err) {
+    console.log(err);
+    alert("Upload Fehler");
   }
 }
 
@@ -260,8 +307,35 @@ async function exportStats() {
   doc.save("analyse.pdf");
 }
 
+// ---------- CHART ----------
+async function loadChart() {
+
+  const { data } = await window.supabaseClient
+    .from("orders")
+    .select("*");
+
+  const m1 = (data || []).filter(x => x.selected_menu === "Menu 1").length;
+  const m2 = (data || []).filter(x => x.selected_menu === "Menu 2").length;
+
+  const ctx = document.getElementById("chart");
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Menu 1', 'Menu 2'],
+      datasets: [{
+        label: 'Bestellungen',
+        data: [m1, m2]
+      }]
+    }
+  });
+}
+
 // ---------- START ----------
-window.onload = loadAdminData;
+window.onload = async () => {
+  await loadAdminData();
+  await loadChart();
+};
 
 </script>
 
