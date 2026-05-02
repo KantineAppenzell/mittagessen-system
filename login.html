@@ -3,6 +3,8 @@
 <head>
 <title>Login</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
@@ -10,16 +12,13 @@ body {
   margin: 0;
   font-family: Arial;
   background-color: #14968F;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
 }
 
+/* 🔙 Zurück Button */
 .topbar {
-  position: absolute;
-  top: 15px;
-  left: 15px;
+  position: fixed;
+  top: 10px;
+  left: 10px;
 }
 
 .topbar button {
@@ -31,11 +30,21 @@ body {
   cursor: pointer;
 }
 
+/* 🔥 Mobile Center */
+.wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 15px;
+}
+
 .card {
   background: white;
-  padding: 30px;
+  padding: 25px;
   border-radius: 12px;
-  width: 340px;
+  width: 100%;
+  max-width: 340px;
   text-align: center;
 }
 
@@ -45,13 +54,13 @@ h2 {
 
 input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin: 6px 0;
 }
 
 button.main {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-top: 8px;
   background: #14968F;
   color: white;
@@ -82,6 +91,8 @@ button.main {
 <button onclick="history.back()">⬅ Zurück</button>
 </div>
 
+<div class="wrapper">
+
 <div class="card">
 
 <h2 id="title">Login</h2>
@@ -105,10 +116,12 @@ button.main {
 
   <button class="main" onclick="login()">Login</button>
 
-  <!-- 🔥 FIXED RESET -->
+  <!-- 🔥 Passwort Reset -->
   <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
 
   <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
+</div>
+
 </div>
 
 </div>
@@ -117,7 +130,7 @@ button.main {
 
 <script>
 
-// UI SWITCH
+// ---------- UI SWITCH ----------
 function showRegister() {
   loginBox.style.display = "none";
   registerBox.style.display = "block";
@@ -130,7 +143,7 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔥 REGISTRIERUNG
+// ---------- REGISTRIERUNG ----------
 async function register() {
 
   if (!firstname.value || !lastname.value) {
@@ -200,7 +213,7 @@ async function register() {
   showLogin();
 }
 
-// 🔐 LOGIN
+// ---------- LOGIN ----------
 async function login() {
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -228,7 +241,7 @@ async function login() {
   window.location.href = "dashboard.html";
 }
 
-// 🔥 PASSWORD RESET (FIX FÜR GITHUB PAGES)
+// ---------- PASSWORD RESET ----------
 async function resetPassword() {
 
   if (!email.value) {
