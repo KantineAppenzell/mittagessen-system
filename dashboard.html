@@ -46,17 +46,10 @@ button {
   color: white;
   border: none;
   border-radius: 5px;
-  cursor: pointer;
 }
 
 .selected {
   background: #2ecc71 !important;
-}
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
 }
 </style>
 </head>
@@ -65,10 +58,11 @@ button {
 
 <div class="card">
 
-<div class="topbar">
-  <h2>3 Wochen Übersicht</h2>
-  <button onclick="logout()">Logout</button>
-</div>
+<h2>3 Wochen Übersicht</h2>
+<button onclick="logout()">Logout</button>
+
+<h3>Menü Datei</h3>
+<div id="menuFile"></div>
 
 <table id="table"></table>
 
@@ -91,23 +85,22 @@ async function checkUser() {
   }
 }
 
-function get3Weeks() {
+const file = localStorage.getItem("menu_file");
+if (file) {
+  menuFile.innerHTML = `<a href="${file}" target="_blank">Menü öffnen</a>`;
+}
+
+function getDays() {
   let days = [];
-  let start = new Date();
 
   for (let i = 0; i < 21; i++) {
     let d = new Date();
-    d.setDate(start.getDate() + i);
+    d.setDate(new Date().getDate() + i);
 
-    // nur Mo–Fr
     if (d.getDay() !== 0 && d.getDay() !== 6) {
       days.push({
         date: d.toISOString().split("T")[0],
-        label: d.toLocaleDateString("de-CH", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit"
-        })
+        label: d.toLocaleDateString("de-CH")
       });
     }
   }
@@ -116,7 +109,7 @@ function get3Weeks() {
 }
 
 async function loadTable() {
-  const days = get3Weeks();
+  const days = getDays();
 
   let html = `
     <tr>
@@ -169,18 +162,16 @@ async function loadTable() {
     `;
   }
 
-  document.getElementById("table").innerHTML = html;
+  table.innerHTML = html;
 }
 
 async function orderMeal(date, menu) {
-  await window.supabaseClient
-    .from("orders")
-    .upsert({
-      user_id: user.id,
-      order_date: date,
-      selected_menu: menu,
-      status: "ordered"
-    });
+  await window.supabaseClient.from("orders").upsert({
+    user_id: user.id,
+    order_date: date,
+    selected_menu: menu,
+    status: "ordered"
+  });
 
   loadTable();
 }
