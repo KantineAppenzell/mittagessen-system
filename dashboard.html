@@ -52,11 +52,22 @@ button {
 
 <script>
 
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+// 🔥 gleiche Logik wie Admin
+function getNextWorkdays(count) {
+  const days = [];
+  let current = new Date();
+
+  while (days.length < count) {
+    const day = current.getDay();
+
+    if (day !== 0 && day !== 6) {
+      days.push(new Date(current));
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
 }
 
 function formatDate(date) {
@@ -76,14 +87,7 @@ async function loadDashboard() {
     return;
   }
 
-  const monday = getMonday(new Date());
-
-  const days = [];
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(monday);
-    d.setDate(d.getDate() + i);
-    days.push(d);
-  }
+  const days = getNextWorkdays(10);
 
   const { data: orders } = await window.supabaseClient
     .from("orders")
