@@ -100,7 +100,7 @@ th {
 
 <script>
 
-// 👉 Montag dieser Woche berechnen
+// 👉 Montag berechnen
 function getMonday(d) {
   d = new Date(d);
   const day = d.getDay();
@@ -128,7 +128,7 @@ async function loadAdminData() {
     days.push(d);
   }
 
-  // 🔥 Daten mit JOIN laden
+  // 🔥 JOIN QUERY (funktioniert jetzt wegen FK!)
   const { data: orders, error } = await window.supabaseClient
     .from("orders")
     .select(`
@@ -139,8 +139,11 @@ async function loadAdminData() {
       )
     `);
 
+  console.log("ORDERS:", orders, error);
+
   if (error) {
     alert("Fehler beim Laden der Daten");
+    console.log(error);
     return;
   }
 
@@ -159,8 +162,8 @@ async function loadAdminData() {
     const menu1Count = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
     const menu2Count = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
 
-    // 🔹 Tabelle oben
-    const row = `
+    // Übersicht Tabelle
+    tbody.innerHTML += `
       <tr>
         <td>${getDayName(day)}</td>
         <td>${dateStr}</td>
@@ -169,30 +172,28 @@ async function loadAdminData() {
       </tr>
     `;
 
-    tbody.innerHTML += row;
-
-    // 🔹 Detail-Liste unten
+    // Detail Liste
     let namesHTML = "";
 
     dayOrders.forEach(o => {
+
       const name = o.profiles?.full_name || "Unbekannt";
+
       namesHTML += `<li>${name} → ${o.selected_menu}</li>`;
     });
 
-    const box = `
+    detailContainer.innerHTML += `
       <div class="card day-box">
         <h3>${getDayName(day)} - ${dateStr}</h3>
         <ul>${namesHTML || "<li>Keine Bestellungen</li>"}</ul>
       </div>
     `;
 
-    detailContainer.innerHTML += box;
-
   });
 
 }
 
-// Start
+// 🚀 Start
 loadAdminData();
 
 </script>
