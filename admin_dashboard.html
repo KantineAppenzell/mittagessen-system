@@ -17,7 +17,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  max-width: 900px;
+  max-width: 1000px;
   margin: auto;
 }
 
@@ -35,11 +35,21 @@ button {
   border-radius: 5px;
 }
 
-.day {
-  border: 1px solid #ddd;
-  padding: 10px;
+table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 10px;
-  border-radius: 8px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background: #14968F;
+  color: white;
 }
 </style>
 </head>
@@ -55,7 +65,11 @@ button {
 
 <h2>Wochenübersicht</h2>
 
-<div id="list"></div>
+<h3>📊 Menü-Auswertung</h3>
+<table id="summary"></table>
+
+<h3>👥 Detailansicht</h3>
+<div id="details"></div>
 
 </div>
 
@@ -63,21 +77,31 @@ button {
 
 <script>
 
+// LOGIN CHECK
 if (localStorage.getItem("admin_logged") !== "true") {
   window.location.href = "admin.html";
 }
 
+// WOCHE (MO-FR)
 function getWeek() {
   let days = [];
   let today = new Date();
 
-  for (let i = 0; i < 7; i++) {
-    let d = new Date();
-    d.setDate(today.getDate() + i);
+  let monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
 
-    if (d.getDay() !== 0 && d.getDay() !== 6) {
-      days.push(d.toISOString().split("T")[0]);
-    }
+  for (let i = 0; i < 5; i++) {
+    let d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+
+    days.push({
+      date: d.toISOString().split("T")[0],
+      label: d.toLocaleDateString("de-CH", {
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit"
+      })
+    });
   }
 
   return days;
@@ -86,37 +110,66 @@ function getWeek() {
 async function load() {
 
   const days = getWeek();
-  let html = "";
 
-  for (let d of days) {
+  let summaryHTML = `
+    <tr>
+      <th>Tag</th>
+      <th>Menü 1</th>
+      <th>Menü 2</th>
+    </tr>
+  `;
+
+  let detailHTML = "";
+
+  for (let day of days) {
 
     const orders = await window.supabaseClient
       .from("orders")
       .select("*")
-      .eq("order_date", d);
+      .eq("order_date", day.date);
 
-    let names = [];
+    let menu1 = 0;
+    let menu2 = 0;
+
+    let persons = [];
 
     for (let o of orders.data) {
-      const p = await window.supabaseClient
+
+      if (o.selected_menu === "Menu 1") menu1++;
+      if (o.selected_menu === "Menu 2") menu2++;
+
+      const profile = await window.supabaseClient
         .from("profiles")
-        .select("*")
+        .select("full_name")
         .eq("id", o.user_id)
         .single();
 
-      if (p.data) names.push(p.data.full_name + " (" + o.selected_menu + ")");
+      if (profile.data) {
+        persons.push(
+          profile.data.full_name + " (" + o.selected_menu + ")"
+        );
+      }
     }
 
-    html += `
-      <div class="day">
-        <b>${d}</b><br>
-        Anzahl: ${orders.data.length}<br><br>
-        ${names.join("<br>")}
-      </div>
+    // SUMMARY TABELLE
+    summaryHTML += `
+      <tr>
+        <td>${day.label}</td>
+        <td>${menu1}</td>
+        <td>${menu2}</td>
+      </tr>
+    `;
+
+    // DETAIL TABELLE
+    detailHTML += `
+      <h4>${day.label}</h4>
+      ${persons.length === 0 ? "Keine Bestellungen" : persons.join("<br>")}
+      <hr>
     `;
   }
 
-  list.innerHTML = html;
+  document.getElementById("summary").innerHTML = summaryHTML;
+  document.getElementById("details").innerHTML = detailHTML;
 }
 
 function logout() {
@@ -125,6 +178,7 @@ function logout() {
 }
 
 load();
+
 </script>
 
 </body>
