@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin Dashboard</title>
+<title>Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body {
   margin: 0;
   font-family: Arial;
-  background-color: #14968F;
+  background: #14968F;
   color: white;
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 900px;
   margin: auto;
   padding: 40px;
 }
@@ -29,93 +28,83 @@ body {
   margin-bottom: 20px;
 }
 
-/* 🔥 TABELLE CLEAN */
+iframe {
+  width: 100%;
+  height: 400px;
+  border: none;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
 }
 
 th {
   background: #14968F;
   color: white;
-  text-align: center;
 }
 
 td, th {
-  padding: 12px;
+  padding: 10px;
   border-bottom: 1px solid #ddd;
   text-align: center;
 }
 
-/* gleiche Spaltenbreite */
-th:nth-child(1), td:nth-child(1) { width: 15%; }
-th:nth-child(2), td:nth-child(2) { width: 35%; }
-th:nth-child(3), td:nth-child(3) { width: 25%; }
-th:nth-child(4), td:nth-child(4) { width: 25%; }
-
-tr:hover {
-  background-color: #f5f5f5;
+input[type="checkbox"] {
+  transform: scale(1.3);
+  cursor: pointer;
 }
 
-/* Buttons */
-button {
-  background: #14968F;
+.delete-btn {
+  background: #c0392b;
   color: white;
   border: none;
-  padding: 10px;
-  cursor: pointer;
-  margin-top: 10px;
+  padding: 6px 10px;
   border-radius: 6px;
+  cursor: pointer;
 }
 
-.file-item {
-  border-bottom: 1px solid #ddd;
-  padding: 10px;
-  word-break: break-all;
+.delete-btn:disabled {
+  background: #ccc;
+}
+
+.topbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
 }
 </style>
 </head>
 
 <body>
 
+<div class="topbar">
+<button onclick="history.back()">⬅ Zurück</button>
+</div>
+
 <div class="container">
 
-<h1>Admin Dashboard</h1>
+<h1>Mittagessen Bestellung</h1>
 
-<!-- PDF UPLOAD -->
 <div class="card">
-<h2>Menü PDF Upload</h2>
-<input type="file" id="fileInput">
-<button onclick="uploadPDF()">Upload</button>
+<h2>Menü</h2>
+<div id="menuContainer"></div>
 </div>
 
-<!-- PDF LISTE -->
 <div class="card">
-<h2>PDF Verwaltung</h2>
-<div id="pdfList">Lade...</div>
-</div>
+<h2>2 Wochen Auswahl</h2>
 
-<!-- EXPORT -->
-<div class="card">
-<h2>Export</h2>
-<button onclick="exportWeek()">PDF Wochenübersicht</button>
-</div>
-
-<!-- ÜBERSICHT -->
-<div class="card">
-<h2>2 Wochen Übersicht</h2>
-
-<table id="summaryTable">
+<table>
 <thead>
 <tr>
 <th>Tag</th>
 <th>Datum</th>
 <th>Menü 1</th>
 <th>Menü 2</th>
+<th>Abmelden</th>
 </tr>
 </thead>
-<tbody></tbody>
+<tbody id="menuTable"></tbody>
 </table>
 
 </div>
@@ -124,19 +113,6 @@ button {
 
 <script>
 
-// ---------- 🔥 TEXT CLEAN (VERBESSERT) ----------
-function cleanText(text) {
-  if (!text) return "";
-
-  return text
-    .replace(/&[a-z]+;/gi, "")          // HTML Entities entfernen (&amp;)
-    .replace(/&/g, "")                  // einzelne &
-    .replace(/[^\p{L}\s]/gu, "")        // nur Buchstaben (inkl. äöü)
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// ---------- HELPERS ----------
 function formatDateLocal(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -159,191 +135,114 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// ---------- PDF UPLOAD ----------
-async function uploadPDF(){
-
-  const file = document.getElementById("fileInput").files[0];
-
-  if(!file){
-    alert("Bitte Datei wählen");
-    return;
-  }
-
-  const fileName = Date.now() + "_" + file.name;
-
-  const { error } = await supabaseClient
-    .storage
-    .from("menus")
-    .upload(fileName, file);
-
-  if(error){
-    alert("Upload Fehler: " + error.message);
-    return;
-  }
-
-  const { data } = supabaseClient
-    .storage
-    .from("menus")
-    .getPublicUrl(fileName);
-
-  await supabaseClient
-    .from("menu_files")
-    .insert({
-      file_url: data.publicUrl
-    });
-
-  alert("Upload erfolgreich!");
-  loadPDFList();
+function isTooLate(dateStr) {
+  const now = new Date();
+  const todayStr = formatDateLocal(now);
+  return dateStr === todayStr && now.getHours() >= 7;
 }
 
-// ---------- PDF LISTE ----------
-async function loadPDFList(){
-
+// ---------- PDF ----------
+async function loadMenuPDF(){
   const { data } = await supabaseClient
     .from("menu_files")
     .select("*")
-    .order("created_at", { ascending:false });
+    .order("created_at", { ascending:false })
+    .limit(2);
 
-  const container = document.getElementById("pdfList");
+  const container = document.getElementById("menuContainer");
   container.innerHTML = "";
 
-  if(!data || data.length === 0){
-    container.innerHTML = "Keine PDFs vorhanden";
-    return;
-  }
-
   data.forEach(pdf => {
-    container.innerHTML += `
-      <div class="file-item">
-        ${pdf.file_url}
-        <br>
-        <button onclick="deletePDF('${pdf.file_url}')">Löschen</button>
-      </div>
-    `;
+    container.innerHTML += `<iframe src="${pdf.file_url}"></iframe>`;
   });
 }
 
-// ---------- DELETE ----------
-async function deletePDF(fileUrl){
-
-  if(!confirm("Wirklich löschen?")) return;
-
-  const path = fileUrl.split("/menus/")[1];
-
-  await supabaseClient.storage.from("menus").remove([path]);
-
-  await supabaseClient
-    .from("menu_files")
-    .delete()
-    .eq("file_url", fileUrl);
-
-  alert("Gelöscht!");
-  loadPDFList();
-}
-
 // ---------- DASHBOARD ----------
-async function loadAdminData() {
+async function loadDashboard() {
+
+  const user = (await supabaseClient.auth.getUser()).data.user;
 
   const { data: orders } = await supabaseClient
     .from("orders")
-    .select("*");
+    .select("*")
+    .eq("user_id", user.id);
 
   const days = getNextWorkdays(10);
-
-  const tbody = document.querySelector("#summaryTable tbody");
-  tbody.innerHTML = "";
+  const table = document.getElementById("menuTable");
+  table.innerHTML = "";
 
   days.forEach(day => {
 
     const dateStr = formatDateLocal(day);
+    const myOrder = orders.find(o => o.order_date === dateStr);
 
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
+    const m1Checked = myOrder?.selected_menu === "Menu 1" ? "checked" : "";
+    const m2Checked = myOrder?.selected_menu === "Menu 2" ? "checked" : "";
 
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
+    const disabled = isTooLate(dateStr) ? "disabled" : "";
+    const hasOrder = myOrder ? "" : "disabled";
 
-    tbody.innerHTML += `
+    table.innerHTML += `
       <tr>
         <td>${getDayName(day)}</td>
         <td>${dateStr}</td>
-        <td><strong>${m1}</strong></td>
-        <td><strong>${m2}</strong></td>
+
+        <td>
+          <input type="checkbox" ${m1Checked} ${disabled}
+          onchange="selectMenu('${dateStr}','Menu 1')">
+        </td>
+
+        <td>
+          <input type="checkbox" ${m2Checked} ${disabled}
+          onchange="selectMenu('${dateStr}','Menu 2')">
+        </td>
+
+        <td>
+          <button class="delete-btn"
+            ${hasOrder}
+            ${disabled}
+            onclick="cancel('${dateStr}')">
+            ✖
+          </button>
+        </td>
       </tr>
     `;
   });
 }
 
-// ---------- PDF EXPORT ----------
-async function exportWeek() {
+async function selectMenu(date, menu){
+  if (isTooLate(date)) return alert("Zu spät!");
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const user = (await supabaseClient.auth.getUser()).data.user;
 
-  const { data: orders } = await supabaseClient.from("orders").select("*");
-  const { data: profiles } = await supabaseClient.from("profiles").select("*");
-
-  const days = getNextWorkdays(10);
-
-  let y = 10;
-
-  doc.setFontSize(14);
-  doc.text("Wochenübersicht", 10, y);
-
-  doc.setFontSize(10);
-
-  // Übersicht
-  days.forEach(day => {
-
-    const dateStr = formatDateLocal(day);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
-
-    y += 8;
-    doc.text(`${getDayName(day)} ${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
+  await supabaseClient.from("orders").upsert({
+    user_id: user.id,
+    order_date: date,
+    selected_menu: menu,
+    status: "ordered"
   });
 
-  y += 12;
-  doc.setFontSize(12);
-  doc.text("Details", 10, y);
-
-  doc.setFontSize(10);
-
-  // Details CLEAN
-  days.forEach(day => {
-
-    const dateStr = formatDateLocal(day);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    y += 8;
-    doc.text(`${getDayName(day)} ${dateStr}`, 10, y);
-
-    if(dayOrders.length === 0){
-      y += 5;
-      doc.text("Keine Bestellungen", 10, y);
-      return;
-    }
-
-    dayOrders.forEach(o => {
-
-      const user = profiles.find(p => p.id === o.user_id);
-      const rawName = user ? user.full_name : "Unbekannt";
-
-      const name = cleanText(rawName); // 🔥 FIX
-
-      y += 5;
-      doc.text(`- ${name} -> ${o.selected_menu}`, 10, y);
-    });
-
-  });
-
-  doc.save("wochenreport.pdf");
+  loadDashboard();
 }
 
-// ---------- START ----------
-loadAdminData();
-loadPDFList();
+async function cancel(date){
+  if (isTooLate(date)) return alert("Zu spät!");
+
+  const user = (await supabaseClient.auth.getUser()).data.user;
+
+  await supabaseClient
+    .from("orders")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("order_date", date);
+
+  loadDashboard();
+}
+
+window.onload = () => {
+  loadDashboard();
+  loadMenuPDF();
+};
 
 </script>
 
