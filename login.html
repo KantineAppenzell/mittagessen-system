@@ -16,6 +16,20 @@ body {
   height: 100vh;
 }
 
+.topbar {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+}
+
+.topbar button {
+  background: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
 .card {
   background: white;
   padding: 30px;
@@ -27,29 +41,16 @@ body {
 input {
   width: 100%;
   padding: 10px;
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
 button {
   width: 100%;
   padding: 10px;
-  margin-top: 10px;
+  margin-top: 8px;
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 6px;
-}
-
-.topbar {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.topbar button {
-  background: white;
-  border: none;
-  padding: 8px;
   border-radius: 6px;
 }
 </style>
@@ -62,8 +63,10 @@ button {
 </div>
 
 <div class="card">
-<h2>Login</h2>
+<h2>Login / Registrierung</h2>
 
+<input id="firstname" placeholder="Vorname">
+<input id="lastname" placeholder="Nachname">
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Passwort">
 
@@ -77,10 +80,18 @@ button {
 
 <script>
 async function signUp() {
-  const { error } = await window.supabaseClient.auth.signUp({
+
+  const { data, error } = await window.supabaseClient.auth.signUp({
     email: email.value,
     password: password.value
   });
+
+  if (!error) {
+    await window.supabaseClient.from("profiles").insert({
+      id: data.user.id,
+      full_name: firstname.value + " " + lastname.value
+    });
+  }
 
   status.innerText = error ? error.message : "Registriert!";
 }
