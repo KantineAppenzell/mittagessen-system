@@ -13,25 +13,36 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .card {
   background: white;
-  padding: 30px;
+  padding: 25px;
   border-radius: 12px;
+  width: 380px;
   text-align: center;
-  width: 320px;
+}
+
+.day {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
 }
 
 button {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
+  padding: 8px;
+  margin-top: 5px;
   background: #14968F;
   color: white;
   border: none;
   border-radius: 6px;
+}
+
+.selected {
+  background: #2ecc71 !important;
 }
 </style>
 </head>
@@ -39,60 +50,127 @@ button {
 <body>
 
 <div class="card">
-<h2>Mittagessen wählen</h2>
 
-<div id="menu">Lade Menü...</div>
+<h2>Deine Woche</h2>
+<button onclick="logout()">Logout</button>
 
-<button onclick="order('Menu 1')">Menü 1</button>
-<button onclick="order('Menu 2')">Menü 2</button>
-<button onclick="cancel()">Abmelden</button>
+<div id="week"></div>
 
-<div id="status"></div>
 </div>
 
 <script src="supabase.js"></script>
 
 <script>
-async function loadMenu() {
-  const today = new Date().toISOString().split("T")[0];
 
-  const { data } = await window.supabaseClient
-    .from("weekly_menu")
-    .select("*")
-    .eq("menu_date", today)
-    .single();
+let user = null;
 
-  if (data) {
-    document.getElementById("menu").innerHTML =
-      data.menu_1 + "<br>" + data.menu_2;
+async function checkUser() {
+  const res = await window.supabaseClient.auth.getUser();
+
+  if (!res.data.user) {
+    window.location.href = "login.html";
+  } else {
+    user = res.data.user;
+    loadWeek();
   }
 }
 
-async function order(menu) {
-  const user = await window.supabaseClient.auth.getUser();
+function getWeekDates() {
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
 
-  await window.supabaseClient.from("orders").insert({
-    user_id: user.data.user.id,
-    order_date: new Date().toISOString().split("T")[0],
-    selected_menu: menu,
-    status: "ordered"
-  });
+  let days = [];
 
-  document.getElementById("status").innerText = "Bestellt!";
+  for (let i = 0; i < 5; i++) {
+    let d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+
+    days.push({
+      date: d.toISOString().split("T")[0],
+      label: d.toLocaleDateString("de-CH", { weekday: 'long', day: '2-digit', month: '2-digit' })
+    });
+  }
+
+  return days;
 }
 
-async function cancel() {
-  const user = await window.supabaseClient.auth.getUser();
+async function loadWeek() {
+  const days = getWeekDates();
+
+  let html = "";
+
+  for (let day of days) {
+
+    const menu = await window.supabaseClient
+      .from("weekly_menu")
+      .select("*")
+      .eq("menu_date", day.date)
+      .single();
+
+    const order = await window.supabaseClient
+      .from("orders")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("order_date", day.date)
+      .single();
+
+    html += `
+      <div class="day">
+        <b>${day.label}</b><br><br>
+
+        ${menu.data ? menu.data.menu_1 : "-"}<br>
+        ${menu.data ? menu.data.menu_2 : "-"}<br><br>
+
+        <button onclick="orderMeal('${day.date}','Menu 1')"
+        ${order.data?.selected_menu === "Menu 1" ? "class='selected'" : ""}>
+        Menü 1
+        </button>
+
+        <button onclick="orderMeal('${day.date}','Menu 2')"
+        ${order.data?.selected_menu === "Menu 2" ? "class='selected'" : ""}>
+        Menü 2
+        </button>
+
+        <button onclick="cancel('${day.date}')">Abmelden</button>
+      </div>
+    `;
+  }
+
+  document.getElementById("week").innerHTML = html;
+}
+
+async function orderMeal(date, menu) {
 
   await window.supabaseClient
     .from("orders")
-    .update({ status: "cancelled" })
-    .eq("user_id", user.data.user.id);
+    .upsert({
+      user_id: user.id,
+      order_date: date,
+      selected_menu: menu,
+      status: "ordered"
+    });
 
-  document.getElementById("status").innerText = "Abgemeldet!";
+  loadWeek();
 }
 
-loadMenu();
+async function cancel(date) {
+  await window.supabaseClient
+    .from("orders")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("order_date", date);
+
+  loadWeek();
+}
+
+async function logout() {
+  await window.supabaseClient.auth.signOut();
+  window.location.href = "login.html";
+}
+
+checkUser();
+
 </script>
 
 </body>
