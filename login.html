@@ -2,6 +2,8 @@
 <html>
 <head>
   <title>Login</title>
+
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
@@ -17,6 +19,7 @@
 
 <h3 id="status"></h3>
 
+<!-- WICHTIG: nur EINMAL einbinden -->
 <script src="supabase.js"></script>
 
 <script>
@@ -24,22 +27,25 @@ async function signUp() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password
+  const { data, error } = await supabase.auth.signUp({
+    email: email,
+    password: password
   });
 
-  document.getElementById("status").innerText =
-    error ? error.message : "Registriert! Prüfe deine E-Mail.";
+  if (error) {
+    document.getElementById("status").innerText = error.message;
+  } else {
+    document.getElementById("status").innerText = "Registriert!";
+  }
 }
 
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password
   });
 
   if (error) {
