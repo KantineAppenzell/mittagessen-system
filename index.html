@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mittagessen Bestellung</title>
 
-<!-- QR CODE LIB -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
@@ -19,18 +18,13 @@ body {
   height: 100vh;
 }
 
-/* 🔥 Card etwas breiter wegen QR */
 .card {
   background: white;
-  padding: 30px;
+  padding: 25px;
   border-radius: 12px;
-  width: 340px;
+  width: 90%;
+  max-width: 340px;
   text-align: center;
-}
-
-h1 { 
-  color: #14968F; 
-  margin-bottom: 15px;
 }
 
 a {
@@ -43,16 +37,8 @@ a {
   text-decoration: none;
 }
 
-/* 🔥 QR Bereich */
 .qr-box {
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #ddd;
-}
-
-#qrcode {
-  margin: 10px auto;
-  width: 140px;
+  margin-top: 15px;
 }
 </style>
 </head>
@@ -60,21 +46,19 @@ a {
 <body>
 
 <div class="card">
-<h1>Mittagessen Bestellung</h1>
+
+<h2>Mittagessen Bestellung</h2>
 
 <a href="login.html">Login</a>
 <a href="admin.html">Admin</a>
 
-<!-- 🔥 QR CODE -->
 <div class="qr-box">
-  <div><strong>Mit Handy öffnen</strong></div>
-  <div id="qrcode"></div>
+<div id="qrcode"></div>
 </div>
 
 </div>
 
 <script>
-// 🔥 QR erzeugen mit aktueller URL
 new QRCode(document.getElementById("qrcode"), {
   text: window.location.href,
   width: 140,
