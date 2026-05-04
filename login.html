@@ -1,76 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+<meta charset="UTF-8">
 <title>Login</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background-color: #14968F;
+  min-height: 100vh;
 }
 
-/* 🔙 Zurück Button */
 .topbar {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
 }
 
 .topbar button {
-  background: white;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 8px 16px 8px 12px;
+  border-radius: 50px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
 }
 
-/* 🔥 Mobile Center */
+.topbar button:hover {
+  background: rgba(255,255,255,0.35);
+}
+
 .wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 15px;
+  padding: 20px;
 }
 
 .card {
   background: white;
-  padding: 25px;
+  padding: 28px 24px;
   border-radius: 12px;
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   text-align: center;
 }
 
 h2 {
   color: #14968F;
+  margin-top: 0;
+  margin-bottom: 18px;
 }
 
 input {
   width: 100%;
   padding: 12px;
   margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
 }
 
 button.main {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
+  padding: 13px;
+  margin-top: 10px;
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 16px;
 }
 
+button.main:hover { background: #0f7a74; }
+
 .switch {
-  margin-top: 10px;
+  margin-top: 12px;
   font-size: 14px;
   cursor: pointer;
   color: #14968F;
@@ -88,49 +110,38 @@ button.main {
 <body>
 
 <div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
+  <button onclick="history.back()">⬅ Zurück</button>
 </div>
 
 <div class="wrapper">
+  <div class="card">
 
-<div class="card">
+    <h2 id="title">Login</h2>
 
-<h2 id="title">Login</h2>
+    <!-- REGISTRIERUNG -->
+    <div id="registerBox" style="display:none;">
+      <input id="firstname" placeholder="Vorname">
+      <input id="lastname" placeholder="Nachname">
+      <input id="email_reg" placeholder="Email" type="email">
+      <input id="password_reg" type="password" placeholder="Passwort">
+      <button class="main" onclick="register()">Registrieren</button>
+      <div class="switch" onclick="showLogin()">Schon registriert? Login</div>
+    </div>
 
-<!-- REGISTRIERUNG -->
-<div id="registerBox" style="display:none;">
-  <input id="firstname" placeholder="Vorname">
-  <input id="lastname" placeholder="Nachname">
-  <input id="email_reg" placeholder="Email">
-  <input id="password_reg" type="password" placeholder="Passwort">
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <input id="email" placeholder="Email" type="email">
+      <input id="password" type="password" placeholder="Passwort">
+      <button class="main" onclick="login()">Login</button>
+      <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
+      <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
+    </div>
 
-  <button class="main" onclick="register()">Registrieren</button>
-
-  <div class="switch" onclick="showLogin()">Schon registriert? Login</div>
-</div>
-
-<!-- LOGIN -->
-<div id="loginBox">
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Passwort">
-
-  <button class="main" onclick="login()">Login</button>
-
-  <!-- 🔥 Passwort Reset -->
-  <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
-
-  <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
-</div>
-
-</div>
-
+  </div>
 </div>
 
 <script src="supabase.js"></script>
-
 <script>
-
-// ---------- UI SWITCH ----------
 function showRegister() {
   loginBox.style.display = "none";
   registerBox.style.display = "block";
@@ -143,9 +154,7 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// ---------- REGISTRIERUNG ----------
 async function register() {
-
   if (!firstname.value || !lastname.value) {
     alert("Bitte Vor- und Nachname eingeben");
     return;
@@ -157,38 +166,22 @@ async function register() {
   });
 
   let user = null;
-
-  if (!error) {
-    user = data.user ?? data.session?.user;
-  }
+  if (!error) user = data.user ?? data.session?.user;
 
   if (error && error.message.includes("already registered")) {
-
     alert("User existiert bereits → Profil wird ergänzt");
-
     const loginRes = await window.supabaseClient.auth.signInWithPassword({
       email: email_reg.value,
       password: password_reg.value
     });
-
-    if (loginRes.error) {
-      alert("Passwort falsch → bitte Login verwenden");
-      return;
-    }
-
+    if (loginRes.error) { alert("Passwort falsch → bitte Login verwenden"); return; }
     user = loginRes.data.user;
   }
 
-  if (!user) {
-    alert("User konnte nicht ermittelt werden");
-    return;
-  }
+  if (!user) { alert("User konnte nicht ermittelt werden"); return; }
 
   const existingProfile = await window.supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+    .from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   if (existingProfile.data) {
     alert("Profil existiert bereits → bitte Login verwenden");
@@ -204,33 +197,22 @@ async function register() {
       full_name: firstname.value + " " + lastname.value
     }]);
 
-  if (insertError) {
-    alert("Fehler beim Speichern Profil");
-    return;
-  }
+  if (insertError) { alert("Fehler beim Speichern Profil"); return; }
 
   alert("Profil erfolgreich erstellt!");
   showLogin();
 }
 
-// ---------- LOGIN ----------
 async function login() {
-
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
     email: email.value,
     password: password.value
   });
 
-  if (error) {
-    alert("Email oder Passwort falsch!");
-    return;
-  }
+  if (error) { alert("Email oder Passwort falsch!"); return; }
 
   const profile = await window.supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", data.user.id)
-    .single();
+    .from("profiles").select("*").eq("id", data.user.id).single();
 
   if (!profile.data) {
     alert("Kein Profil vorhanden → bitte registrieren!");
@@ -241,25 +223,16 @@ async function login() {
   window.location.href = "dashboard.html";
 }
 
-// ---------- PASSWORD RESET ----------
 async function resetPassword() {
-
-  if (!email.value) {
-    alert("Bitte Email eingeben!");
-    return;
-  }
+  if (!email.value) { alert("Bitte Email eingeben!"); return; }
 
   const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email.value, {
     redirectTo: "https://damian396.github.io/mittagessen-system/reset.html"
   });
 
-  if (error) {
-    alert("Fehler: " + error.message);
-  } else {
-    alert("Email zum Zurücksetzen wurde gesendet!");
-  }
+  if (error) alert("Fehler: " + error.message);
+  else alert("Email zum Zurücksetzen wurde gesendet!");
 }
-
 </script>
 
 </body>
