@@ -123,6 +123,46 @@ h2 { font-size: clamp(1.1rem, 3vw, 1.5rem); margin-top: 0; }
   color: #555;
 }
 
+/* ---- Manuelle Bestellung ---- */
+.manual-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.manual-hint {
+  margin: 0 0 12px;
+  color: #555;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .manual-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- Table ---- */
 .table-wrapper { overflow-x: auto; }
 
@@ -216,6 +256,36 @@ td {
     <button class="btn" onclick="exportWeek()">📄 PDF Export</button>
   </div>
 
+  <div class="card">
+    <h2>Manuelle Bestellungen</h2>
+    <p class="manual-hint">
+      Hier kann eine Bestellung für den nächsten Arbeitstag erfasst werden, falls eine Anmeldung nach 13:00 Uhr telefonisch erfolgt.
+      Der nächste Arbeitstag ist: <strong id="manualOrderDate">Lade...</strong>
+    </p>
+
+    <div class="manual-form">
+      <div class="form-group">
+        <label for="manualName">Vor- und Nachname</label>
+        <input id="manualName" type="text" placeholder="z. B. Max Muster">
+      </div>
+
+      <div class="form-group">
+        <label for="manualMenu">Menü</label>
+        <select id="manualMenu">
+          <option value="Menu 1">Menü 1</option>
+          <option value="Menu 2">Menü 2</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="manualQty">Anzahl</label>
+        <input id="manualQty" type="number" min="1" step="1" value="1">
+      </div>
+
+      <button class="btn" onclick="saveManualOrder()">➕ Speichern</button>
+    </div>
+  </div>
+
   <div class="card table-wrapper">
     <h2>2 Wochen Übersicht</h2>
     <table id="summaryTable">
@@ -278,6 +348,17 @@ function getNextWorkdays(count) {
   }
 
   return days;
+}
+
+function getNextWorkdayAfterToday() {
+  const next = new Date();
+  next.setDate(next.getDate() + 1);
+
+  while (next.getDay() === 0 || next.getDay() === 6) {
+    next.setDate(next.getDate() + 1);
+  }
+
+  return next;
 }
 
 function getDayName(d) {
@@ -382,7 +463,18 @@ async function loadAdminData() {
     return;
   }
 
+  const { data: manualOrders, error: manualError } = await supabaseClient
+    .from("manual_orders")
+    .select("*");
+
+  if (manualError) {
+    console.error("Fehler beim Laden der manuellen Bestellungen:", manualError);
+    alert("Fehler beim Laden der manuellen Bestellungen: " + manualError.message);
+    return;
+  }
+
   const safeOrders = orders || [];
+  const safeManualOrders = manualOrders || [];
   const days = getNextWorkdays(10);
   const tbody = document.querySelector("#summaryTable tbody");
   tbody.innerHTML = "";
@@ -390,12 +482,14 @@ async function loadAdminData() {
   days.forEach(day => {
     const dateStr = formatDateLocal(day);
     const dayOrders = safeOrders.filter(o => o.order_date === dateStr);
+    const dayManualOrders = safeManualOrders.filter(o => o.order_date === dateStr);
+    const allDayOrders = [...dayOrders, ...dayManualOrders];
 
-    const m1 = dayOrders
+    const m1 = allDayOrders
       .filter(o => o.selected_menu === "Menu 1")
       .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
 
-    const m2 = dayOrders
+    const m2 = allDayOrders
       .filter(o => o.selected_menu === "Menu 2")
       .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
 
@@ -408,6 +502,8 @@ async function loadAdminData() {
       </tr>
     `;
   });
+
+  updateManualOrderDateLabel();
 }
 
 function drawWrappedText(doc, text, x, y, maxWidth, lineHeight) {
@@ -433,9 +529,10 @@ function drawDetailColumn(doc, title, dayOrders, profiles, x, y, columnWidth) {
 
   dayOrders.forEach(o => {
     const user = profiles.find(p => p.id === o.user_id);
-    const name = cleanText(user ? user.full_name : "Unbekannt");
+    const name = cleanText(o.manual_name || o.full_name || (user ? user.full_name : "Unbekannt"));
     const qty = Number(o.quantity || 1);
-    const line = `- ${name} (${o.selected_menu} x${qty})`;
+    const manualLabel = (o.manual_name || o.full_name) ? " / manuell" : "";
+    const line = `- ${name} (${o.selected_menu} x${qty}${manualLabel})`;
 
     const wrapped = doc.splitTextToSize(line, columnWidth);
     wrapped.forEach(part => {
@@ -452,6 +549,64 @@ function drawDetailColumn(doc, title, dayOrders, profiles, x, y, columnWidth) {
   return y;
 }
 
+function updateManualOrderDateLabel() {
+  const targetDate = formatDateLocal(getNextWorkdayAfterToday());
+  const label = document.getElementById("manualOrderDate");
+
+  if (label) {
+    label.textContent = formatDateDisplay(targetDate);
+  }
+}
+
+async function saveManualOrder() {
+  const nameInput = document.getElementById("manualName");
+  const menuInput = document.getElementById("manualMenu");
+  const qtyInput = document.getElementById("manualQty");
+
+  const fullName = nameInput.value.trim();
+  const selectedMenu = menuInput.value;
+  const quantity = Number(qtyInput.value || 1);
+  const orderDate = formatDateLocal(getNextWorkdayAfterToday());
+
+  if (!fullName) {
+    alert("Bitte Vor- und Nachname eingeben.");
+    return;
+  }
+
+  if (!selectedMenu) {
+    alert("Bitte Menü auswählen.");
+    return;
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    alert("Bitte eine gültige Anzahl eingeben.");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("manual_orders")
+    .insert({
+      order_date: orderDate,
+      full_name: fullName,
+      selected_menu: selectedMenu,
+      quantity: quantity,
+      status: "ordered"
+    });
+
+  if (error) {
+    console.error("Fehler beim Speichern der manuellen Bestellung:", error);
+    alert("Fehler beim Speichern der manuellen Bestellung: " + error.message);
+    return;
+  }
+
+  nameInput.value = "";
+  menuInput.value = "Menu 1";
+  qtyInput.value = 1;
+
+  alert("Manuelle Bestellung für den " + formatDateDisplay(orderDate) + " gespeichert.");
+  loadAdminData();
+}
+
 async function exportWeek() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -466,6 +621,16 @@ async function exportWeek() {
     return;
   }
 
+  const { data: manualOrdersData, error: manualOrdersError } = await supabaseClient
+    .from("manual_orders")
+    .select("*");
+
+  if (manualOrdersError) {
+    console.error("Fehler beim Laden der manuellen Bestellungen:", manualOrdersError);
+    alert("Fehler beim Laden der manuellen Bestellungen: " + manualOrdersError.message);
+    return;
+  }
+
   const { data: profilesData, error: profilesError } = await supabaseClient
     .from("profiles")
     .select("*");
@@ -477,6 +642,7 @@ async function exportWeek() {
   }
 
   const orders = ordersData || [];
+  const manualOrders = manualOrdersData || [];
   const profiles = profilesData || [];
 
   const days = getNextWorkdays(10);
@@ -492,7 +658,10 @@ async function exportWeek() {
 
   days.forEach(day => {
     const dateStr = formatDateLocal(day);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
+    const dayOrders = [
+      ...orders.filter(o => o.order_date === dateStr),
+      ...manualOrders.filter(o => o.order_date === dateStr)
+    ];
 
     const m1 = dayOrders
       .filter(o => o.selected_menu === "Menu 1")
@@ -529,7 +698,10 @@ async function exportWeek() {
 
   if (firstDay) {
     const dateStr = formatDateLocal(firstDay);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
+    const dayOrders = [
+      ...orders.filter(o => o.order_date === dateStr),
+      ...manualOrders.filter(o => o.order_date === dateStr)
+    ];
     drawDetailColumn(
       doc,
       `${getDayName(firstDay)} ${formatDateDisplay(dateStr)}`,
@@ -543,7 +715,10 @@ async function exportWeek() {
 
   if (secondDay) {
     const dateStr = formatDateLocal(secondDay);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
+    const dayOrders = [
+      ...orders.filter(o => o.order_date === dateStr),
+      ...manualOrders.filter(o => o.order_date === dateStr)
+    ];
     drawDetailColumn(
       doc,
       `${getDayName(secondDay)} ${formatDateDisplay(dateStr)}`,
@@ -558,6 +733,7 @@ async function exportWeek() {
   doc.save("export.pdf");
 }
 
+updateManualOrderDateLabel();
 loadAdminData();
 loadPDFList();
 </script>
