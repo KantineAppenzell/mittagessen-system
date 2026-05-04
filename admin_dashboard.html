@@ -1,78 +1,189 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+<meta charset="UTF-8">
 <title>Admin Dashboard</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background-color: #14968F;
   color: white;
+  min-height: 100vh;
 }
 
 .topbar {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
 }
 
 .topbar button {
-  background: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 8px 16px 8px 12px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+}
+
+.topbar button:hover {
+  background: rgba(255,255,255,0.35);
 }
 
 .container {
   max-width: 1000px;
   margin: auto;
-  padding: 70px 15px 20px;
+  padding: 70px 15px 30px;
 }
+
+h1 { margin-top: 0; font-size: clamp(1.4rem, 4vw, 2rem); }
+h2 { font-size: clamp(1.1rem, 3vw, 1.5rem); margin-top: 0; }
 
 .card {
   background: white;
   color: black;
-  padding: 20px;
+  padding: 18px;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
-.table-wrapper {
-  overflow-x: auto;
+/* ---- Upload ---- */
+.upload-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
+
+.upload-row input[type="file"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.btn {
+  background: #14968F;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn:hover { background: #0f7a74; }
+
+.btn-red {
+  background: #c0392b;
+}
+
+.btn-red:hover { background: #a93226; }
+
+/* ---- PDF List ---- */
+.file-item {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.file-item:last-child { border-bottom: none; }
+
+.file-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #555;
+}
+
+/* ---- Table ---- */
+.table-wrapper { overflow-x: auto; }
 
 table {
-  min-width: 600px;
+  width: 100%;
+  min-width: 400px;
   border-collapse: collapse;
 }
 
 th {
   background: #14968F;
   color: white;
+  padding: 10px 12px;
+  text-align: center;
 }
 
-td, th {
-  padding: 10px;
+td {
+  padding: 10px 12px;
   border-bottom: 1px solid #ddd;
+  text-align: center;
 }
 
-button {
-  background: #14968F;
-  color: white;
-  border: none;
-  padding: 10px;
+/* Mobile table → cards */
+@media (max-width: 500px) {
+  .table-wrapper { overflow-x: unset; }
+  table, tbody { display: block; min-width: unset; }
+  thead { display: none; }
+
+  tr {
+    display: block;
+    background: #f8f8f8;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+  }
+
+  td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border: none;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+  }
+
+  td:last-child { border-bottom: none; }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #555;
+    text-align: left;
+    flex: 1;
+    margin-right: 10px;
+  }
 }
 
-.file-item {
-  border-bottom: 1px solid #ddd;
-  padding: 10px;
+@media (max-width: 480px) {
+  .upload-row { flex-direction: column; }
+  .upload-row input[type="file"], .btn { width: 100%; }
 }
 </style>
 </head>
@@ -80,59 +191,55 @@ button {
 <body>
 
 <div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
+  <button onclick="history.back()">⬅ Zurück</button>
 </div>
 
 <div class="container">
 
-<h1>Admin Dashboard</h1>
+  <h1>Admin Dashboard</h1>
 
-<div class="card">
-<h2>Menü PDF Upload</h2>
-<input type="file" id="fileInput">
-<button onclick="uploadPDF()">Upload</button>
-</div>
+  <div class="card">
+    <h2>Menü PDF Upload</h2>
+    <div class="upload-row">
+      <input type="file" id="fileInput" accept=".pdf">
+      <button class="btn" onclick="uploadPDF()">⬆ Upload</button>
+    </div>
+  </div>
 
-<div class="card">
-<h2>PDF Verwaltung</h2>
-<div id="pdfList">Lade...</div>
-</div>
+  <div class="card">
+    <h2>PDF Verwaltung</h2>
+    <div id="pdfList">Lade...</div>
+  </div>
 
-<div class="card">
-<h2>Export</h2>
-<button onclick="exportWeek()">PDF Export</button>
-</div>
+  <div class="card">
+    <h2>Export</h2>
+    <button class="btn" onclick="exportWeek()">📄 PDF Export</button>
+  </div>
 
-<div class="card table-wrapper">
-<h2>2 Wochen Übersicht</h2>
-<table id="summaryTable">
-<thead>
-<tr>
-<th>Tag</th>
-<th>Datum</th>
-<th>Menü 1</th>
-<th>Menü 2</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
+  <div class="card table-wrapper">
+    <h2>2 Wochen Übersicht</h2>
+    <table id="summaryTable">
+      <thead>
+        <tr>
+          <th>Tag</th>
+          <th>Datum</th>
+          <th>Menü 1</th>
+          <th>Menü 2</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
 </div>
 
 <script>
-
-// ---------- CLEAN ----------
 function cleanText(text) {
   if (!text) return "";
-  try {
-    return decodeURIComponent(escape(text));
-  } catch {
-    return text;
-  }
+  try { return decodeURIComponent(escape(text)); }
+  catch { return text; }
 }
 
-// ---------- HELPERS ----------
 function formatDateLocal(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -141,83 +248,70 @@ function formatDateLocal(date) {
 function getNextWorkdays(count) {
   const days = [];
   let current = new Date();
-
   while (days.length < count) {
     const d = current.getDay();
     if (d !== 0 && d !== 6) days.push(new Date(current));
     current.setDate(current.getDate() + 1);
   }
-
   return days;
-}
-
-function getNextTwoWorkdays() {
-  return getNextWorkdays(2);
 }
 
 function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// ---------- PDF UPLOAD ----------
-async function uploadPDF(){
+async function uploadPDF() {
   const file = document.getElementById("fileInput").files[0];
-  if(!file) return alert("Bitte Datei wählen");
+  if (!file) return alert("Bitte Datei wählen");
 
   const fileName = Date.now() + "_" + file.name;
-
   const { error } = await supabaseClient.storage.from("menus").upload(fileName, file);
-  if(error) return alert(error.message);
+  if (error) return alert(error.message);
 
   const { data } = supabaseClient.storage.from("menus").getPublicUrl(fileName);
-
   await supabaseClient.from("menu_files").insert({ file_url: data.publicUrl });
 
   alert("Upload erfolgreich!");
   loadPDFList();
 }
 
-// ---------- PDF LISTE ----------
-async function loadPDFList(){
-  const { data } = await supabaseClient.from("menu_files").select("*").order("created_at", { ascending:false });
+async function loadPDFList() {
+  const { data } = await supabaseClient
+    .from("menu_files")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   const container = document.getElementById("pdfList");
   container.innerHTML = "";
 
-  if(!data || data.length === 0){
-    container.innerHTML = "Keine PDFs vorhanden";
+  if (!data || data.length === 0) {
+    container.innerHTML = "<p style='color:#888;margin:0'>Keine PDFs vorhanden</p>";
     return;
   }
 
   data.forEach(pdf => {
+    const name = pdf.file_url.split("/").pop();
     container.innerHTML += `
       <div class="file-item">
-        ${pdf.file_url}
-        <br>
-        <button onclick="deletePDF('${pdf.file_url}')">Löschen</button>
+        <span class="file-url" title="${pdf.file_url}">${name}</span>
+        <a class="btn" href="${pdf.file_url}" target="_blank">🔍 Ansehen</a>
+        <button class="btn btn-red" onclick="deletePDF('${pdf.file_url}')">🗑 Löschen</button>
       </div>
     `;
   });
 }
 
-// ---------- DELETE ----------
-async function deletePDF(fileUrl){
-  if(!confirm("Wirklich löschen?")) return;
-
+async function deletePDF(fileUrl) {
+  if (!confirm("Wirklich löschen?")) return;
   const path = fileUrl.split("/menus/")[1];
-
   await supabaseClient.storage.from("menus").remove([path]);
-
   await supabaseClient.from("menu_files").delete().eq("file_url", fileUrl);
-
   alert("Gelöscht!");
   loadPDFList();
 }
 
-// ---------- DASHBOARD ----------
 async function loadAdminData() {
   const { data: orders } = await supabaseClient.from("orders").select("*");
-
   const days = getNextWorkdays(10);
   const tbody = document.querySelector("#summaryTable tbody");
   tbody.innerHTML = "";
@@ -226,21 +320,24 @@ async function loadAdminData() {
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
+    const m1 = dayOrders
+      .filter(o => o.selected_menu === "Menu 1")
+      .reduce((sum, o) => sum + (o.quantity || 1), 0);
+    const m2 = dayOrders
+      .filter(o => o.selected_menu === "Menu 2")
+      .reduce((sum, o) => sum + (o.quantity || 1), 0);
 
     tbody.innerHTML += `
       <tr>
-        <td>${getDayName(day)}</td>
-        <td>${dateStr}</td>
-        <td>${m1}</td>
-        <td>${m2}</td>
+        <td data-label="Tag">${getDayName(day)}</td>
+        <td data-label="Datum">${dateStr}</td>
+        <td data-label="Menü 1">${m1}</td>
+        <td data-label="Menü 2">${m2}</td>
       </tr>
     `;
   });
 }
 
-// ---------- EXPORT ----------
 async function exportWeek() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -249,19 +346,16 @@ async function exportWeek() {
   const { data: profiles } = await supabaseClient.from("profiles").select("*");
 
   const days = getNextWorkdays(10);
-  const detailDays = getNextTwoWorkdays();
+  const detailDays = getNextWorkdays(2);
 
   let y = 10;
-
   doc.text("Übersicht (2 Wochen)", 10, y);
 
   days.forEach(day => {
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
-
+    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").reduce((s, o) => s + (o.quantity || 1), 0);
+    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").reduce((s, o) => s + (o.quantity || 1), 0);
     y += 6;
     doc.text(`${getDayName(day)} ${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
   });
@@ -272,26 +366,23 @@ async function exportWeek() {
   detailDays.forEach(day => {
     const dateStr = formatDateLocal(day);
     const dayOrders = orders.filter(o => o.order_date === dateStr);
-
     y += 6;
     doc.text(`${getDayName(day)} ${dateStr}`, 10, y);
 
     dayOrders.forEach(o => {
       const user = profiles.find(p => p.id === o.user_id);
       const name = cleanText(user ? user.full_name : "Unbekannt");
-
+      const qty = o.quantity || 1;
       y += 5;
-      doc.text(`- ${name} (${o.selected_menu} x1)`, 10, y);
+      doc.text(`- ${name} (${o.selected_menu} x${qty})`, 10, y);
     });
   });
 
   doc.save("export.pdf");
 }
 
-// ---------- START ----------
 loadAdminData();
 loadPDFList();
-
 </script>
 
 </body>
