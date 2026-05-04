@@ -25,6 +25,11 @@ body {
   z-index: 100;
 }
 
+.topbar {
+  display: flex;
+  gap: 10px;
+}
+
 .topbar button {
   display: flex;
   align-items: center;
@@ -65,6 +70,16 @@ body {
 h2 {
   margin-top: 0;
   color: #14968F;
+}
+
+.info-text {
+  margin: -4px 0 18px;
+  padding: 12px 14px;
+  background: #eaf7f6;
+  border-left: 5px solid #14968F;
+  border-radius: 8px;
+  color: #333;
+  line-height: 1.45;
 }
 
 .menu-pdfs {
@@ -161,6 +176,7 @@ input[type="checkbox"] {
 }
 
 .save-btn,
+.overview-btn,
 .delete-btn {
   border: none;
   padding: 8px 12px;
@@ -172,6 +188,19 @@ input[type="checkbox"] {
 
 .save-btn {
   background: #14968F;
+}
+
+.overview-btn,
+.overview-btn {
+  background: #14968F;
+  display: inline-block;
+  text-align: center;
+  margin-bottom: 15px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
 }
 
 .delete-btn {
@@ -239,17 +268,20 @@ input[type="checkbox"] {
 
 <div class="topbar">
   <button onclick="window.location.href='index.html'">⬅ Zurück</button>
+  <button onclick="window.location.href='overview.html'">📋 Übersicht</button>
 </div>
 
 <div class="container">
 
   <div class="card">
     <h2>Aktuelles Menü</h2>
+    <p class="info-text">Bestellungen sind am Vortag bis 13:00 Uhr anzumelden. Wenn dies nicht möglich ist, bitte unter folgender Nummer Kontakt aufnehmen: 071 795 31 16.</p>
     <div id="menuContainer" class="menu-pdfs"></div>
   </div>
 
   <div class="card">
     <h2>Mittagessen bestellen</h2>
+    <a class="overview-btn" href="overview.html">📋 Übersicht</a>
 
     <div class="table-wrap">
       <table>
@@ -278,6 +310,11 @@ const tempQty = {};
 function formatDateLocal(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatDateDisplay(dateStr) {
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}`;
 }
 
 function getNextWorkdays(count) {
@@ -408,7 +445,7 @@ async function loadDashboard() {
     table.innerHTML += `
       <tr>
         <td data-label="Tag">${getDayName(day)}</td>
-        <td data-label="Datum">${dateStr}</td>
+        <td data-label="Datum">${formatDateDisplay(dateStr)}</td>
 
         <td data-label="Menü 1">
           <input 
