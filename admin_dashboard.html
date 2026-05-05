@@ -274,6 +274,7 @@ td {
         <select id="manualMenu">
           <option value="Menu 1">Menü 1</option>
           <option value="Menu 2">Menü 2</option>
+          <option value="Suppe und Gemischter Salat">Suppe und Gemischter Salat</option>
         </select>
       </div>
 
@@ -295,6 +296,7 @@ td {
           <th>Datum</th>
           <th>Menü 1</th>
           <th>Menü 2</th>
+          <th>Suppe und Gemischter Salat</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -493,12 +495,17 @@ async function loadAdminData() {
       .filter(o => o.selected_menu === "Menu 2")
       .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
 
+    const soupSalad = allDayOrders
+      .filter(o => o.selected_menu === "Suppe und Gemischter Salat")
+      .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
+
     tbody.innerHTML += `
       <tr>
         <td data-label="Tag">${getDayName(day)}</td>
         <td data-label="Datum">${formatDateDisplay(dateStr)}</td>
         <td data-label="Menü 1">${m1}</td>
         <td data-label="Menü 2">${m2}</td>
+        <td data-label="Suppe und Gemischter Salat">${soupSalad}</td>
       </tr>
     `;
   });
@@ -671,7 +678,11 @@ async function exportWeek() {
       .filter(o => o.selected_menu === "Menu 2")
       .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
 
-    doc.text(`${getDayName(day)} ${formatDateDisplay(dateStr)} | Menü 1: ${m1} | Menü 2: ${m2}`, 10, y);
+    const soupSalad = dayOrders
+      .filter(o => o.selected_menu === "Suppe und Gemischter Salat")
+      .reduce((sum, o) => sum + Number(o.quantity || 1), 0);
+
+    doc.text(`${getDayName(day)} ${formatDateDisplay(dateStr)} | Menü 1: ${m1} | Menü 2: ${m2} | Suppe und Gemischter Salat: ${soupSalad}`, 10, y);
     y += 6;
   });
 
