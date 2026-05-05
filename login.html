@@ -227,7 +227,7 @@ async function resetPassword() {
   if (!email.value) { alert("Bitte Email eingeben!"); return; }
 
   const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email.value, {
-    redirectTo: "https://damian396.github.io/mittagessen-system/reset.html"
+    redirectTo: "https://KantineAppenzell.github.io/mittagessen-system/reset.html"
   });
 
   if (error) alert("Fehler: " + error.message);
