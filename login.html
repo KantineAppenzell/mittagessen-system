@@ -211,7 +211,7 @@ button.main:disabled {
     <div id="registerBox" style="display:none;">
       <input id="firstname" placeholder="Vorname">
       <input id="lastname" placeholder="Nachname">
-      <input id="email_reg" placeholder="Email" type="email">
+      <input id="email_reg" placeholder="Email" type="email" onblur="checkBlockedEmailField()">
       <input id="password_reg" type="password" placeholder="Passwort">
       <p style="font-size:12px;color:#888;text-align:left;margin:4px 2px 0;">
         Bitte ein anderes Passwort als für dein Firmenkonto verwenden.
@@ -312,9 +312,34 @@ function updateRegisterButton() {
     !document.getElementById("consentCheckbox").checked;
 }
 
+/* Gesperrte Domains für die Registrierung (Kleinbuchstaben, ohne @).
+   Ergänzen, falls weitere Firmen-Domains gesperrt werden sollen. */
+const BLOCKED_EMAIL_DOMAINS = ["buhlergroup.com"];
+
+function isBlockedEmail(value) {
+  const email = (value || "").trim().toLowerCase();
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex === -1) return false;
+  const domain = email.slice(atIndex + 1);
+  return BLOCKED_EMAIL_DOMAINS.some(blocked => domain === blocked || domain.endsWith("." + blocked));
+}
+
+function checkBlockedEmailField() {
+  if (isBlockedEmail(email_reg.value)) {
+    alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@buhlergroup.com).");
+    email_reg.value = "";
+    email_reg.focus();
+  }
+}
+
 async function register() {
   if (!document.getElementById("consentCheckbox").checked) {
     alert("Bitte die Datenschutzerklärung bestätigen, um fortzufahren.");
+    return;
+  }
+
+  if (isBlockedEmail(email_reg.value)) {
+    alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@buhlergroup.com).");
     return;
   }
 
