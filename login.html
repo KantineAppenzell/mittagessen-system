@@ -213,6 +213,7 @@ button.main:disabled {
       <input id="lastname" placeholder="Nachname">
       <input id="email_reg" placeholder="Email" type="email" onblur="checkBlockedEmailField()">
       <input id="password_reg" type="password" placeholder="Passwort">
+      <input id="company_code" type="password" placeholder="Firmen-Zugangscode" autocomplete="off">
       <p style="font-size:12px;color:#888;text-align:left;margin:4px 2px 0;">
         Bitte ein anderes Passwort als für dein Firmenkonto verwenden.
       </p>
@@ -281,6 +282,9 @@ button.main:disabled {
     <h4>Freiwilligkeit</h4>
     <p>Die Nutzung dieses Systems ist freiwillig, Bestellungen sind alternativ auch telefonisch möglich.</p>
 
+    <h4>Zugang</h4>
+    <p>Die Registrierung ist zusätzlich durch einen Firmen-Zugangscode geschützt, damit sich keine betriebsfremden Personen anmelden können.</p>
+
     <button class="modal-close" onclick="closePrivacyModal()">Schliessen</button>
   </div>
 </div>
@@ -324,6 +328,10 @@ function isBlockedEmail(value) {
   return BLOCKED_EMAIL_DOMAINS.some(blocked => domain === blocked || domain.endsWith("." + blocked));
 }
 
+/* Firmen-Zugangscode: verhindert, dass Aussenstehende sich registrieren.
+   Bei Bedarf hier ändern. */
+const COMPANY_ACCESS_CODE = "9050";
+
 function checkBlockedEmailField() {
   if (isBlockedEmail(email_reg.value)) {
     alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@buhlergroup.com).");
@@ -340,6 +348,11 @@ async function register() {
 
   if (isBlockedEmail(email_reg.value)) {
     alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@buhlergroup.com).");
+    return;
+  }
+
+  if (company_code.value.trim() !== COMPANY_ACCESS_CODE) {
+    alert("Falscher Firmen-Zugangscode. Bitte beim Team erfragen.");
     return;
   }
 
