@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Küche – Bestellungen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<!-- Feste Hauptversion, damit ein grosses Update die Seite nicht kaputt macht -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+
+<style>
+:root {
+  --teal: #14968F;
+  --teal-dark: #0C5F5A;
+  --ink: #102826;
+  --paper: #EEF4F3;
+  --line: #C9DAD8;
+  --menu1: #14968F;
+  --menu2: #C27C0E;
+  --soup: #4F7F2F;
+  --warn: #B3261E;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Atkinson Hyperlegible", Arial, Helvetica, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--menu2);
+  outline-offset: 2px;
+}
+
+/* ---------- Kopfzeile ---------- */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--teal-dark);
+  color: #fff;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.clock {
+  text-align: right;
+  line-height: 1.2;
+}
+
+.clock-time {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.clock-status {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.clock-status.offline {
+  opacity: 1;
+  color: #FFD9D6;
+  font-weight: 700;
+}
+
+/* ---------- Tagesauswahl ---------- */
+.days {
+  display: flex;
+  gap: 8px;
+  padding: 14px 24px 0;
+  overflow-x: auto;
+}
+
+.day-btn {
+  flex: 0 0 auto;
+  min-width: 120px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.day-btn strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.day-btn span {
+  font-size: 0.9rem;
+  color: #4A6461;
+}
+
+.day-btn[aria-pressed="true"] {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+
+.day-btn[aria-pressed="true"] span {
+  color: #DDF2F0;
+}
+
+/* ---------- Grosse Zahlen ---------- */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 0.8fr;
+  gap: 0;
+  margin: 16px 24px 0;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.count {
+  padding: 18px 20px 20px;
+  border-right: 2px solid var(--line);
+  border-top: 10px solid var(--c, var(--teal));
+}
+
+.count:last-child {
+  border-right: none;
+  background: var(--ink);
+  color: #fff;
+  border-top-color: var(--ink);
+}
+
+.count-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.count-value {
+  font-size: clamp(4rem, 11vw, 8.5rem);
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.count-sub {
+  font-size: 0.9rem;
+  color: #4A6461;
+  margin-top: 4px;
+  min-height: 1.2em;
+}
+
+.count:last-child .count-sub {
+  color: #B8CFCC;
+}
+
+/* ---------- Namensliste ---------- */
+.names {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 16px 24px 24px;
+}
+
+.names section {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.names h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  color: var(--c, var(--teal));
+}
+
+.names ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.names li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #E3ECEB;
+  font-size: 1.05rem;
+}
+
+.names li:last-child {
+  border-bottom: none;
+}
+
+.qty {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: #FBEBD2;
+  color: #7A4B05;
+  font-size: 0.78rem;
+  vertical-align: middle;
+}
+
+.empty {
+  color: #6B8482;
+  font-style: italic;
+}
+
+/* ---------- Fuss ---------- */
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px 24px;
+  color: #6B8482;
+  font-size: 0.85rem;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  color: #6B8482;
+  text-decoration: underline;
+  padding: 6px;
+}
+
+/* ---------- Login ---------- */
+.login {
+  max-width: 380px;
+  margin: 10vh auto;
+  padding: 28px;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+}
+
+.login h1 {
+  margin: 0 0 6px;
+  color: var(--teal-dark);
+  font-size: 1.5rem;
+}
+
+.login p {
+  margin: 0 0 18px;
+  color: #4A6461;
+}
+
+.login label {
+  display: block;
+  margin: 12px 0 4px;
+  font-weight: 700;
+}
+
+.login input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.primary {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.primary:disabled {
+  opacity: 0.6;
+}
+
+.msg {
+  margin-top: 14px;
+  color: var(--warn);
+  min-height: 1.2em;
+}
+
+.error-bar {
+  margin: 16px 24px 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #FCE3E1;
+  color: var(--warn);
+  font-weight: 700;
+}
+
+[hidden] { display: none !important; }
+
+@media (max-width: 800px) {
+  .board { grid-template-columns: repeat(2, 1fr); }
+  .count:nth-child(2) { border-right: none; }
+  .count:nth-child(-n+2) { border-bottom: 2px solid var(--line); }
+  .names { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Anmeldung -->
+<main id="loginView" class="login" hidden>
+  <h1>Küchenansicht</h1>
+  <p>Mit dem Küchen-Konto anmelden. Das Tablet bleibt danach angemeldet.</p>
+  <label for="email">E-Mail</label>
+  <input id="email" type="email" autocomplete="username">
+  <label for="password">Passwort</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" class="primary" type="button">Anmelden</button>
+  <div id="loginMsg" class="msg" role="alert"></div>
+</main>
+
+<!-- Übersicht -->
+<div id="appView" hidden>
+  <header class="head">
+    <h1 id="title">Bestellungen</h1>
+    <div class="clock">
+      <div id="clockTime" class="clock-time">--:--</div>
+      <div id="clockStatus" class="clock-status">Wird geladen</div>
+    </div>
+  </header>
+
+  <nav id="days" class="days" aria-label="Tag auswählen"></nav>
+
+  <div id="errorBar" class="error-bar" role="alert" hidden></div>
+
+  <div class="board">
+    <div class="count" style="--c: var(--menu1)">
+      <div class="count-name">Menü 1</div>
+      <div id="cMenu1" class="count-value">0</div>
+      <div id="sMenu1" class="count-sub"></div>
+    </div>
+    <div class="count" style="--c: var(--menu2)">
+      <div class="count-name">Menü 2</div>
+      <div id="cMenu2" class="count-value">0</div>
+      <div id="sMenu2" class="count-sub"></div>
+    </div>
+    <div class="count" style="--c: var(--soup)">
+      <div class="count-name">Suppe und Salat</div>
+      <div id="cSoup" class="count-value">0</div>
+      <div id="sSoup" class="count-sub"></div>
+    </div>
+    <div class="count">
+      <div class="count-name">Total</div>
+      <div id="cTotal" class="count-value">0</div>
+      <div id="sTotal" class="count-sub"></div>
+    </div>
+  </div>
+
+  <div class="names">
+    <section style="--c: var(--menu1)">
+      <h2>Menü 1</h2>
+      <ul id="lMenu1"></ul>
+    </section>
+    <section style="--c: var(--menu2)">
+      <h2>Menü 2</h2>
+      <ul id="lMenu2"></ul>
+    </section>
+    <section style="--c: var(--soup)">
+      <h2>Suppe und Salat</h2>
+      <ul id="lSoup"></ul>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <span>Aktualisiert sich jede Minute automatisch.</span>
+    <button id="logoutBtn" class="link-btn" type="button">Abmelden</button>
+  </footer>
+</div>
+
+<script>
+/* Bewusst ohne neueste JavaScript-Syntax, damit ältere Tablets mitkommen. */
+var MENUS = {
+  "Menu 1": { count: "cMenu1", sub: "sMenu1", list: "lMenu1" },
+  "Menu 2": { count: "cMenu2", sub: "sMenu2", list: "lMenu2" },
+  "Suppe und Gemischter Salat": { count: "cSoup", sub: "sSoup", list: "lSoup" }
+};
+var DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+var REFRESH_MS = 60000;
+var DAY_COUNT = 5;
+
+var db = window.supabaseClient;
+var days = [];
+var selectedIndex = 0;
+var allRows = [];
+var refreshTimer = null;
+var wakeLock = null;
+
+function $(id) { return document.getElementById(id); }
+
+function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+function isoDate(d) {
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+
+function shortDate(d) {
+  return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + ".";
+}
+
+function nextWorkdays(count) {
+  var result = [];
+  var d = new Date();
+  d.setHours(12, 0, 0, 0);
+  while (result.length < count) {
+    if (d.getDay() !== 0 && d.getDay() !== 6) result.push(new Date(d.getTime()));
+    d.setDate(d.getDate() + 1);
+  }
+  return result;
+}
+
+function isToday(d) {
+  return isoDate(d) === isoDate(new Date());
+}
+
+function dayLabel(d) {
+  return isToday(d) ? "Heute" : DAY_NAMES[d.getDay()];
+}
+
+/* ---------- Uhr ---------- */
+function tickClock() {
+  var now = new Date();
+  $("clockTime").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+}
+
+function setStatus(text, offline) {
+  var el = $("clockStatus");
+  el.textContent = text;
+  el.className = offline ? "clock-status offline" : "clock-status";
+}
+
+/* ---------- Bildschirm wach halten ---------- */
+function keepAwake() {
+  if (!("wakeLock" in navigator)) return;
+  navigator.wakeLock.request("screen").then(function (lock) {
+    wakeLock = lock;
+  }).catch(function () { /* nicht unterstützt: Bildschirm-Timeout am Tablet ausschalten */ });
+}
+
+/* ---------- Anmeldung ---------- */
+function showLogin(message) {
+  stopRefresh();
+  $("appView").hidden = true;
+  $("loginView").hidden = false;
+  $("loginMsg").textContent = message || "";
+}
+
+function showApp() {
+  $("loginView").hidden = true;
+  $("appView").hidden = false;
+  keepAwake();
+  startRefresh();
+}
+
+function checkRole(user) {
+  return db.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    .then(function (res) {
+      var role = res.data ? res.data.role : null;
+      return role === "kitchen" || role === "admin";
+    });
+}
+
+function login() {
+  var btn = $("loginBtn");
+  btn.disabled = true;
+  $("loginMsg").textContent = "";
+
+  db.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("password").value
+  }).then(function (res) {
+    if (res.error) throw new Error("E-Mail oder Passwort ist falsch.");
+    return checkRole(res.data.user);
+  }).then(function (allowed) {
+    if (!allowed) {
+      return db.auth.signOut().then(function () {
+        throw new Error("Dieses Konto hat keinen Zugriff auf die Küchenansicht.");
+      });
+    }
+    $("password").value = "";
+    showApp();
+  }).catch(function (err) {
+    showLogin(err.message);
+  }).then(function () {
+    btn.disabled = false;
+  });
+}
+
+function logout() {
+  if (!confirm("Tablet wirklich abmelden?")) return;
+  db.auth.signOut().then(function () { showLogin(""); });
+}
+
+/* ---------- Daten ---------- */
+function load() {
+  days = nextWorkdays(DAY_COUNT);
+  if (selectedIndex >= days.length) selectedIndex = 0;
+
+  return db.rpc("kitchen_overview", {
+    p_from: isoDate(days[0]),
+    p_to: isoDate(days[days.length - 1])
+  }).then(function (res) {
+    if (res.error) {
+      if (/Berechtigung|JWT|auth/i.test(res.error.message)) {
+        showLogin("Bitte erneut anmelden.");
+        return;
+      }
+      throw res.error;
+    }
+    allRows = res.data || [];
+    $("errorBar").hidden = true;
+    render();
+    var now = new Date();
+    setStatus("Stand " + pad(now.getHours()) + ":" + pad(now.getMinutes()), false);
+  }).catch(function () {
+    $("errorBar").textContent = "Keine Verbindung zum Server. Die Zahlen zeigen den letzten Stand.";
+    $("errorBar").hidden = false;
+    setStatus("Keine Verbindung", true);
+  });
+}
+
+function rowsFor(dateStr) {
+  return allRows.filter(function (r) { return r.order_date === dateStr; });
+}
+
+function sum(rows) {
+  return rows.reduce(function (t, r) { return t + Number(r.quantity || 1); }, 0);
+}
+
+function render() {
+  renderDays();
+
+  var day = days[selectedIndex];
+  var rows = rowsFor(isoDate(day));
+  $("title").textContent = dayLabel(day) + ", " + DAY_NAMES[day.getDay()].slice(0, 2) + " " + shortDate(day) + day.getFullYear();
+
+  Object.keys(MENUS).forEach(function (menu) {
+    var ids = MENUS[menu];
+    var menuRows = rows.filter(function (r) { return r.selected_menu === menu; });
+    var manual = sum(menuRows.filter(function (r) { return r.manual; }));
+
+    $(ids.count).textContent = sum(menuRows);
+    $(ids.sub).textContent = manual ? "davon " + manual + " telefonisch" : "";
+    renderList($(ids.list), menuRows);
+  });
+
+  var people = rows.length;
+  $("cTotal").textContent = sum(rows);
+  $("sTotal").textContent = people === 1 ? "1 Bestellung" : people + " Bestellungen";
+}
+
+function renderDays() {
+  var nav = $("days");
+  nav.innerHTML = "";
+
+  days.forEach(function (d, i) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "day-btn";
+    btn.setAttribute("aria-pressed", i === selectedIndex ? "true" : "false");
+
+    var strong = document.createElement("strong");
+    strong.textContent = dayLabel(d) + " " + shortDate(d);
+    var span = document.createElement("span");
+    var total = sum(rowsFor(isoDate(d)));
+    span.textContent = total === 1 ? "1 Essen" : total + " Essen";
+
+    btn.appendChild(strong);
+    btn.appendChild(span);
+    btn.addEventListener("click", function () {
+      selectedIndex = i;
+      render();
+    });
+    nav.appendChild(btn);
+  });
+}
+
+function renderList(ul, rows) {
+  ul.innerHTML = "";
+
+  if (!rows.length) {
+    var empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "Keine Bestellungen";
+    ul.appendChild(empty);
+    return;
+  }
+
+  rows.forEach(function (r) {
+    var li = document.createElement("li");
+    var name = document.createElement("span");
+    name.textContent = r.full_name || "Unbekannt";
+
+    if (r.manual) {
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "Telefon";
+      name.appendChild(tag);
+    }
+
+    var qty = document.createElement("span");
+    qty.className = "qty";
+    qty.textContent = Number(r.quantity || 1) + "×";
+
+    li.appendChild(name);
+    li.appendChild(qty);
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- Automatische Aktualisierung ---------- */
+function startRefresh() {
+  stopRefresh();
+  load();
+  refreshTimer = setInterval(load, REFRESH_MS);
+}
+
+function stopRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = null;
+}
+
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible" && !$("appView").hidden) {
+    keepAwake();
+    load();
+  }
+});
+
+window.addEventListener("online", function () {
+  if (!$("appView").hidden) load();
+});
+
+/* ---------- Start ---------- */
+$("loginBtn").addEventListener("click", login);
+$("password").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") login();
+});
+$("logoutBtn").addEventListener("click", logout);
+
+tickClock();
+setInterval(tickClock, 10000);
+
+if (!db) {
+  showLogin("Verbindung zur Datenbank ist nicht konfiguriert (supabase.js).");
+} else {
+  db.auth.getSession().then(function (res) {
+    var session = res.data ? res.data.session : null;
+    if (!session) {
+      showLogin("");
+      return;
+    }
+    return checkRole(session.user).then(function (allowed) {
+      if (allowed) showApp();
+      else showLogin("Dieses Konto hat keinen Zugriff auf die Küchenansicht.");
+    });
+  }).catch(function () {
+    showLogin("Keine Verbindung zum Server. Bitte später erneut versuchen.");
+  });
+}
+</script>
+
+</body>
+</html>
