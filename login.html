@@ -91,6 +91,11 @@ button.main {
 
 button.main:hover { background: #0f7a74; }
 
+button.main:disabled {
+  background: #b7cfce;
+  cursor: not-allowed;
+}
+
 .switch {
   margin-top: 12px;
   font-size: 14px;
@@ -104,6 +109,90 @@ button.main:hover { background: #0f7a74; }
   color: #14968F;
   cursor: pointer;
 }
+
+/* ---- Datenschutz-Zustimmung (nur bei Registrierung) ---- */
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  margin: 14px 2px 4px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.consent-row input[type="checkbox"] {
+  width: auto;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+}
+
+.consent-row a {
+  color: #14968F;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- Datenschutz-Fenster (Modal) ---- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-box {
+  background: white;
+  color: #222;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px 22px;
+  text-align: left;
+  line-height: 1.55;
+}
+
+.modal-box h3 {
+  color: #14968F;
+  margin-top: 0;
+}
+
+.modal-box h4 {
+  color: #14968F;
+  font-size: 1rem;
+  margin: 18px 0 6px;
+}
+
+.modal-box h4:first-of-type { margin-top: 10px; }
+
+.modal-box p { margin: 6px 0; font-size: 14px; }
+.modal-box ul { margin: 6px 0; padding-left: 20px; font-size: 14px; }
+.modal-box li { margin: 3px 0; }
+
+.modal-close {
+  width: 100%;
+  padding: 11px;
+  margin-top: 16px;
+  background: #14968F;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.modal-close:hover { background: #0f7a74; }
 </style>
 </head>
 
@@ -124,7 +213,18 @@ button.main:hover { background: #0f7a74; }
       <input id="lastname" placeholder="Nachname">
       <input id="email_reg" placeholder="Email" type="email">
       <input id="password_reg" type="password" placeholder="Passwort">
-      <button class="main" onclick="register()">Registrieren</button>
+      <p style="font-size:12px;color:#888;text-align:left;margin:4px 2px 0;">
+        Bitte ein anderes Passwort als für dein Firmenkonto verwenden.
+      </p>
+
+      <div class="consent-row">
+        <input type="checkbox" id="consentCheckbox" onchange="updateRegisterButton()">
+        <label for="consentCheckbox">
+          Ich habe die <a onclick="openPrivacyModal()">Datenschutzerklärung</a> gelesen und bin einverstanden.
+        </label>
+      </div>
+
+      <button class="main" id="registerBtn" onclick="register()" disabled>Registrieren</button>
       <div class="switch" onclick="showLogin()">Schon registriert? Login</div>
     </div>
 
@@ -137,6 +237,51 @@ button.main:hover { background: #0f7a74; }
       <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
     </div>
 
+  </div>
+</div>
+
+<!-- DATENSCHUTZ-FENSTER -->
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal-box">
+    <h3>Datenschutzerklärung</h3>
+
+    <h4>Welche Daten wir bearbeiten</h4>
+    <p>Bei der Registrierung und Nutzung dieses Bestellsystems speichern wir:</p>
+    <ul>
+      <li>Vorname und Nachname</li>
+      <li>E-Mail-Adresse (Login und «Passwort vergessen»)</li>
+      <li>Passwort (verschlüsselt, für uns nicht einsehbar)</li>
+      <li>Bestellungen: Datum, gewähltes Menü, Anzahl</li>
+    </ul>
+    <p>Es werden bewusst keine weiteren Angaben erhoben, insbesondere keine Gesundheitsdaten wie Allergien.</p>
+
+    <h4>Zweck</h4>
+    <p>Die Daten dienen ausschliesslich der Organisation der Mittagessen-Bestellung, damit die Küche weiss, wie viele Menüs zuzubereiten sind, und Bestellungen korrekt zugeordnet werden können. Keine Nutzung für andere Zwecke wie Anwesenheitskontrolle.</p>
+
+    <h4>Wer Zugriff hat</h4>
+    <ul>
+      <li>Du selbst siehst ausschliesslich deine eigenen Bestellungen.</li>
+      <li>Das Küchenpersonal sieht nur Datum, Name, Menü und Anzahl der anstehenden Bestellungen.</li>
+      <li>Die Administration sieht alle Bestellungen zur Organisation.</li>
+    </ul>
+
+    <h4>Beteiligte Dienstleister</h4>
+    <ul>
+      <li><strong>Supabase</strong> (Datenbank und Login), USA/EU-Region — verarbeitet in unserem Auftrag.</li>
+      <li><strong>GitHub Pages</strong> (Hosting dieser Webseite), USA — verarbeitet technische Zugriffsdaten (z. B. IP-Adresse).</li>
+      <li>Unser <strong>E-Mail-Dienst</strong> für den Versand von «Passwort vergessen» — verarbeitet nur deine E-Mail-Adresse.</li>
+    </ul>
+
+    <h4>Aufbewahrung</h4>
+    <p>Bestellungen werden nach einigen Monaten automatisch gelöscht. Dein Konto bleibt bestehen, solange du das System nutzt, und wird bei Austritt gelöscht — damit auch alle zugehörigen Bestellungen.</p>
+
+    <h4>Deine Rechte</h4>
+    <p>Du kannst jederzeit Auskunft über deine gespeicherten Daten, deren Berichtigung oder die Löschung deines Kontos verlangen. Wende dich dazu an die Administration dieses Systems.</p>
+
+    <h4>Freiwilligkeit</h4>
+    <p>Die Nutzung dieses Systems ist freiwillig, Bestellungen sind alternativ auch telefonisch möglich.</p>
+
+    <button class="modal-close" onclick="closePrivacyModal()">Schliessen</button>
   </div>
 </div>
 
@@ -154,7 +299,25 @@ function showLogin() {
   title.innerText = "Login";
 }
 
+function openPrivacyModal() {
+  document.getElementById("privacyModal").classList.add("open");
+}
+
+function closePrivacyModal() {
+  document.getElementById("privacyModal").classList.remove("open");
+}
+
+function updateRegisterButton() {
+  document.getElementById("registerBtn").disabled =
+    !document.getElementById("consentCheckbox").checked;
+}
+
 async function register() {
+  if (!document.getElementById("consentCheckbox").checked) {
+    alert("Bitte die Datenschutzerklärung bestätigen, um fortzufahren.");
+    return;
+  }
+
   if (!firstname.value || !lastname.value) {
     alert("Bitte Vor- und Nachname eingeben");
     return;
