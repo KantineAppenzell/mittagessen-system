@@ -212,10 +212,10 @@ button.main:disabled {
       <input id="firstname" placeholder="Vorname">
       <input id="lastname" placeholder="Nachname">
       <input id="email_reg" placeholder="Email" type="email" onblur="checkBlockedEmailField()">
-      <input id="password_reg" type="password" placeholder="Passwort">
+      <input id="password_reg" type="password" placeholder="Passwort (z. B. AP1234)" maxlength="6">
       <input id="company_code" type="password" placeholder="Firmen-Zugangscode" autocomplete="off">
       <p style="font-size:12px;color:#888;text-align:left;margin:4px 2px 0;">
-        Bitte ein anderes Passwort als für dein Firmenkonto verwenden.
+        Format: AP + 4 Ziffern, z. B. AP1234. Bitte keinen Code verwenden, den du bereits woanders nutzt.
       </p>
 
       <div class="consent-row">
@@ -332,6 +332,9 @@ function isBlockedEmail(value) {
    Bei Bedarf hier ändern. */
 const COMPANY_ACCESS_CODE = "9050";
 
+/* Passwort-Format: "AP" gefolgt von genau 4 Ziffern, z. B. AP1234 (Gross-/Kleinschreibung egal). */
+const PASSWORD_PATTERN = /^AP\d{4}$/i;
+
 function checkBlockedEmailField() {
   if (isBlockedEmail(email_reg.value)) {
     alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@buhlergroup.com).");
@@ -353,6 +356,11 @@ async function register() {
 
   if (company_code.value.trim() !== COMPANY_ACCESS_CODE) {
     alert("Falscher Firmen-Zugangscode. Bitte beim Team erfragen.");
+    return;
+  }
+
+  if (!PASSWORD_PATTERN.test(password_reg.value)) {
+    alert("Das Passwort muss mit AP beginnen, gefolgt von genau 4 Ziffern (Beispiel: AP1234).");
     return;
   }
 
