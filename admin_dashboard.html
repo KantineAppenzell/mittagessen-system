@@ -287,6 +287,15 @@ td {
     </div>
   </div>
 
+  <div class="card">
+    <h2>Küchen-Zugriff verwalten</h2>
+    <p class="manual-hint">
+      Hier kann einer Person Zugriff auf die Küchenansicht (kueche.html) gegeben oder wieder entzogen werden.
+      Admin-Konten werden hier bewusst nicht aufgeführt.
+    </p>
+    <div id="kitchenAccessList">Lade...</div>
+  </div>
+
   <div class="card table-wrapper">
     <h2>2 Wochen Übersicht</h2>
     <table id="summaryTable">
@@ -482,6 +491,75 @@ async function deletePDF(fileUrl) {
 
   alert("Gelöscht!");
   loadPDFList();
+}
+
+async function loadKitchenAccessList() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id, full_name, role")
+    .neq("role", "admin")
+    .order("full_name", { ascending: true });
+
+  const container = document.getElementById("kitchenAccessList");
+  container.innerHTML = "";
+
+  if (error) {
+    console.error("Fehler beim Laden der Küchen-Zugriffsliste:", error);
+    container.innerHTML = "<p style='color:#c0392b;margin:0'>Fehler beim Laden.</p>";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML = "<p style='color:#888;margin:0'>Keine Konten vorhanden</p>";
+    return;
+  }
+
+  data.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "file-item";
+
+    const name = document.createElement("span");
+    name.className = "file-url";
+    name.textContent = p.full_name || "Unbenannt";
+
+    const select = document.createElement("select");
+    select.style.padding = "8px";
+    select.style.border = "1px solid #ccc";
+    select.style.borderRadius = "6px";
+    select.innerHTML = `
+      <option value="employee"${p.role === "employee" ? " selected" : ""}>Mitarbeitend (kein Küchen-Zugriff)</option>
+      <option value="kitchen"${p.role === "kitchen" ? " selected" : ""}>Küchen-Zugriff</option>
+    `;
+    select.onchange = () => setProfileRole(p.id, select.value, p.full_name);
+
+    row.appendChild(name);
+    row.appendChild(select);
+    container.appendChild(row);
+  });
+}
+
+async function setProfileRole(userId, newRole, fullName) {
+  const label = newRole === "kitchen" ? "Küchen-Zugriff geben" : "Küchen-Zugriff entziehen";
+
+  if (!confirm(`${label} für ${fullName}?`)) {
+    loadKitchenAccessList();
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update({ role: newRole })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("Fehler beim Ändern der Rolle:", error);
+    alert("Fehler beim Ändern: " + error.message);
+    loadKitchenAccessList();
+    return;
+  }
+
+  alert(`Erledigt: ${fullName} hat jetzt ${newRole === "kitchen" ? "Küchen-Zugriff" : "keinen Küchen-Zugriff"}.`);
+  loadKitchenAccessList();
 }
 
 async function loadAdminData() {
@@ -784,6 +862,7 @@ async function exportWeek() {
   updateManualOrderDateLabel();
   loadAdminData();
   loadPDFList();
+  loadKitchenAccessList();
 })();
 /* =================================================================== */
 </script>
