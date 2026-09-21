@@ -126,7 +126,7 @@ h2 {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 860px;
 }
 
 th, td {
@@ -292,6 +292,7 @@ input[type="checkbox"] {
             <th>Menü 1</th>
             <th>Menü 2</th>
             <th>Suppe und Gemischter Salat</th>
+            <th>Salat</th>
             <th>Anzahl</th>
             <th>Speichern</th>
             <th>Abmelden</th>
@@ -437,6 +438,7 @@ async function loadDashboard() {
     const m1Checked = selected === "Menu 1" ? "checked" : "";
     const m2Checked = selected === "Menu 2" ? "checked" : "";
     const soupSaladChecked = selected === "Suppe und Gemischter Salat" ? "checked" : "";
+    const salatChecked = selected === "Salat" ? "checked" : "";
 
     const tooLate = isOrderTooLate(dateStr);
     const disabled = tooLate ? "disabled" : "";
@@ -474,6 +476,15 @@ async function loadDashboard() {
             ${disabled}
             onclick="handleLate('${dateStr}')"
             onchange="selectTemp('${dateStr}', 'Suppe und Gemischter Salat')">
+        </td>
+
+        <td data-label="Salat">
+          <input 
+            type="checkbox" 
+            ${salatChecked} 
+            ${disabled}
+            onclick="handleLate('${dateStr}')"
+            onchange="selectTemp('${dateStr}', 'Salat')">
         </td>
 
         <td data-label="Anzahl">
