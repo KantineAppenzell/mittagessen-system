@@ -123,6 +123,91 @@ input:focus-visible {
   color: #DDF2F0;
 }
 
+/* ---------- Filterleiste ---------- */
+.filterbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 24px 0;
+  flex-wrap: wrap;
+}
+
+.filterbar-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--teal-dark);
+  white-space: nowrap;
+}
+
+.filterbar-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.filterbar-input:focus-visible {
+  outline: 3px solid var(--menu2);
+  outline-offset: 1px;
+}
+
+/* ---------- Wochenübersicht (immer sichtbar, filterbar) ---------- */
+.week-overview {
+  margin: 20px 24px 0;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.week-overview-title {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  color: var(--teal-dark);
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: 92px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #E3ECEB;
+  font-size: 1rem;
+}
+
+.week-row:last-child {
+  border-bottom: none;
+}
+
+.week-row .wr-date {
+  font-weight: 700;
+  color: var(--teal-dark);
+  white-space: nowrap;
+}
+
+.week-row .wr-name {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.week-row .wr-menu {
+  font-size: 0.9rem;
+  color: #4A6461;
+  white-space: nowrap;
+}
+
+.week-row .wr-qty {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* ---------- Grosse Zahlen ---------- */
 .board {
   display: grid;
@@ -353,6 +438,11 @@ input:focus-visible {
 
   <nav id="days" class="days" aria-label="Tag auswählen"></nav>
 
+  <div class="filterbar">
+    <label for="nameFilter" class="filterbar-label">Nach Name filtern</label>
+    <input id="nameFilter" class="filterbar-input" type="search" placeholder="z. B. Muster" oninput="renderWeekOverview()">
+  </div>
+
   <div id="errorBar" class="error-bar" role="alert" hidden></div>
 
   <div class="board">
@@ -392,6 +482,11 @@ input:focus-visible {
       <ul id="lSoup"></ul>
     </section>
   </div>
+
+  <section class="week-overview">
+    <h2 class="week-overview-title">Alle Bestellungen dieser Woche</h2>
+    <div id="weekOverviewList"></div>
+  </section>
 
   <footer class="foot">
     <span>Aktualisiert sich jede Minute automatisch.</span>
@@ -578,6 +673,75 @@ function render() {
   var people = rows.length;
   $("cTotal").textContent = sum(rows);
   $("sTotal").textContent = people === 1 ? "1 Bestellung" : people + " Bestellungen";
+
+  renderWeekOverview();
+}
+
+function shortDateFromIso(dateStr) {
+  var parts = dateStr.split("-");
+  return pad(Number(parts[2])) + "." + pad(Number(parts[1])) + ".";
+}
+
+function renderWeekOverview() {
+  var container = $("weekOverviewList");
+  if (!container) return;
+
+  var query = ($("nameFilter") ? $("nameFilter").value : "").trim().toLowerCase();
+
+  var rows = allRows.slice().sort(function (a, b) {
+    if (a.order_date !== b.order_date) return a.order_date < b.order_date ? -1 : 1;
+    return (a.full_name || "").localeCompare(b.full_name || "", "de");
+  });
+
+  if (query) {
+    rows = rows.filter(function (r) {
+      return (r.full_name || "").toLowerCase().indexOf(query) !== -1;
+    });
+  }
+
+  container.innerHTML = "";
+
+  if (!rows.length) {
+    var empty = document.createElement("p");
+    empty.className = "empty";
+    empty.style.margin = "6px 4px";
+    empty.textContent = query ? "Keine Treffer für „" + query + "“." : "Keine Bestellungen diese Woche.";
+    container.appendChild(empty);
+    return;
+  }
+
+  rows.forEach(function (r) {
+    var row = document.createElement("div");
+    row.className = "week-row";
+
+    var d = document.createElement("span");
+    d.className = "wr-date";
+    d.textContent = shortDateFromIso(r.order_date);
+
+    var name = document.createElement("span");
+    name.className = "wr-name";
+    name.textContent = r.full_name || "Unbekannt";
+    if (r.manual) {
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "Telefon";
+      name.appendChild(tag);
+    }
+
+    var menu = document.createElement("span");
+    menu.className = "wr-menu";
+    menu.textContent = r.selected_menu;
+
+    var qty = document.createElement("span");
+    qty.className = "wr-qty";
+    qty.textContent = Number(r.quantity || 1) + "×";
+
+    row.appendChild(d);
+    row.appendChild(name);
+    row.appendChild(menu);
+    row.appendChild(qty);
+    container.appendChild(row);
+  });
 }
 
 function renderDays() {
