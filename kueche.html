@@ -22,6 +22,7 @@
   --menu1: #14968F;
   --menu2: #C27C0E;
   --soup: #4F7F2F;
+  --salat: #7A5FB0;
   --warn: #B3261E;
 }
 
@@ -211,7 +212,7 @@ input:focus-visible {
 /* ---------- Grosse Zahlen ---------- */
 .board {
   display: grid;
-  grid-template-columns: repeat(3, 1fr) 0.8fr;
+  grid-template-columns: repeat(4, 1fr) 0.8fr;
   gap: 0;
   margin: 16px 24px 0;
   background: #fff;
@@ -260,7 +261,7 @@ input:focus-visible {
 /* ---------- Namensliste ---------- */
 .names {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin: 16px 24px 24px;
 }
@@ -405,8 +406,8 @@ input:focus-visible {
 
 @media (max-width: 800px) {
   .board { grid-template-columns: repeat(2, 1fr); }
-  .count:nth-child(2) { border-right: none; }
-  .count:nth-child(-n+2) { border-bottom: 2px solid var(--line); }
+  .count:nth-child(2n) { border-right: none; }
+  .count:nth-child(-n+4) { border-bottom: 2px solid var(--line); }
   .names { grid-template-columns: 1fr; }
 }
 </style>
@@ -461,6 +462,11 @@ input:focus-visible {
       <div id="cSoup" class="count-value">0</div>
       <div id="sSoup" class="count-sub"></div>
     </div>
+    <div class="count" style="--c: var(--salat)">
+      <div class="count-name">Salat</div>
+      <div id="cSalat" class="count-value">0</div>
+      <div id="sSalat" class="count-sub"></div>
+    </div>
     <div class="count">
       <div class="count-name">Total</div>
       <div id="cTotal" class="count-value">0</div>
@@ -481,6 +487,10 @@ input:focus-visible {
       <h2>Suppe und Salat</h2>
       <ul id="lSoup"></ul>
     </section>
+    <section style="--c: var(--salat)">
+      <h2>Salat</h2>
+      <ul id="lSalat"></ul>
+    </section>
   </div>
 
   <section class="week-overview">
@@ -499,7 +509,8 @@ input:focus-visible {
 var MENUS = {
   "Menu 1": { count: "cMenu1", sub: "sMenu1", list: "lMenu1" },
   "Menu 2": { count: "cMenu2", sub: "sMenu2", list: "lMenu2" },
-  "Suppe und Gemischter Salat": { count: "cSoup", sub: "sSoup", list: "lSoup" }
+  "Suppe und Gemischter Salat": { count: "cSoup", sub: "sSoup", list: "lSoup" },
+  "Salat": { count: "cSalat", sub: "sSalat", list: "lSalat" }
 };
 var DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 var REFRESH_MS = 60000;
