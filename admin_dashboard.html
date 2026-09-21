@@ -306,6 +306,36 @@ td {
 </div>
 
 <script>
+/* ===================================================================
+   ADMIN-SCHUTZ — NEU HINZUGEFÜGT
+   Prüft direkt beim Laden der Seite, ob wirklich ein Admin eingeloggt
+   ist. Erst wenn das bestätigt ist, werden Bestelldaten geladen.
+   Ohne gültige Admin-Rolle: sofortige Weiterleitung, keine Daten laden.
+   =================================================================== */
+async function checkAdminAccess() {
+  const { data } = await supabaseClient.auth.getSession();
+  const user = data.session && data.session.user;
+
+  if (!user) {
+    location.href = "login.html";
+    return false;
+  }
+
+  const { data: profile } = await supabaseClient
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile || profile.role !== "admin") {
+    location.href = "dashboard.html";
+    return false;
+  }
+
+  return true;
+}
+/* =================================================================== */
+
 function cleanText(text) {
   if (!text) return "";
   try { return decodeURIComponent(escape(text)); }
@@ -744,9 +774,18 @@ async function exportWeek() {
   doc.save("export.pdf");
 }
 
-updateManualOrderDateLabel();
-loadAdminData();
-loadPDFList();
+/* ===================================================================
+   START — NEU: erst Admin-Prüfung, danach erst Daten laden
+   =================================================================== */
+(async () => {
+  const isAdmin = await checkAdminAccess();
+  if (!isAdmin) return;
+
+  updateManualOrderDateLabel();
+  loadAdminData();
+  loadPDFList();
+})();
+/* =================================================================== */
 </script>
 
 </body>
