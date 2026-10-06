@@ -309,12 +309,28 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-/* Topbar-Button "Zurück": Ist man im Registrieren-Formular, führt er erst
-   zurück auf das Login-Formular (statt gleich die Seite zu verlassen).
-   Ist man bereits im Login, verlässt er die Seite wie gewohnt. */
+/* Topbar-Button "Zurück":
+   1) Ist die Datenschutzerklärung offen, wird nur diese geschlossen.
+   2) Ist man im Registrieren-Formular, führt er zurück auf das Login-Formular.
+   3) Wurde diese Seite als eigener Tab für die Datenschutzerklärung geöffnet
+      (z. B. von login.html?privacy=1 aus einer anderen Seite), gibt es keine
+      Historie zum Zurückgehen — in diesem Fall wird der Tab geschlossen.
+   4) Sonst: normale Browser-Historie zurück. */
 function goBack() {
+  const privacyModal = document.getElementById("privacyModal");
+
+  if (privacyModal.classList.contains("open")) {
+    closePrivacyModal();
+    return;
+  }
+
   if (registerBox.style.display !== "none") {
     showLogin();
+    return;
+  }
+
+  if (window.opener || history.length <= 1) {
+    window.close();
     return;
   }
 
@@ -327,6 +343,10 @@ function openPrivacyModal() {
 
 function closePrivacyModal() {
   document.getElementById("privacyModal").classList.remove("open");
+
+  if (new URLSearchParams(window.location.search).get("privacy") === "1") {
+    window.close();
+  }
 }
 
 function updateRegisterButton() {
