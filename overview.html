@@ -257,12 +257,16 @@ async function loadOverview() {
 
   days.forEach(day => {
     const dateStr = formatDateLocal(day);
-    const order = safeOrders.find(o => o.order_date === dateStr);
+    const dayOrders = safeOrders.filter(o => o.order_date === dateStr);
 
-    const menu = order ? order.selected_menu : "Keine Bestellung";
-    const quantity = order ? Number(order.quantity || 1) : "-";
-    const status = order ? "Angemeldet" : "Nicht angemeldet";
-    const statusClass = order ? "status-ok" : "status-empty";
+    const menu = dayOrders.length
+      ? dayOrders.map(o => o.selected_menu).join(", ")
+      : "Keine Bestellung";
+    const quantity = dayOrders.length
+      ? dayOrders.map(o => Number(o.quantity || 1)).join(", ")
+      : "-";
+    const status = dayOrders.length ? "Angemeldet" : "Nicht angemeldet";
+    const statusClass = dayOrders.length ? "status-ok" : "status-empty";
 
     table.innerHTML += `
       <tr>

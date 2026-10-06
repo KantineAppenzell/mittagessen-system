@@ -306,7 +306,6 @@ input[type="checkbox"] {
 </div>
 
 <script>
-const tempSelection = {};
 const tempQty = {};
 
 function formatDateLocal(date) {
@@ -406,6 +405,15 @@ async function getCurrentUser() {
   return data.user;
 }
 
+/* Menüs, die an einem Tag gleichzeitig gewählt werden können (nicht mehr
+   gegenseitig ausschliessend). Pro Tag + Menü existiert höchstens eine Zeile
+   in der Datenbank (user_id, order_date, selected_menu ist eindeutig). */
+const MENU_LIST = ["Menu 1", "Menu 2", "Suppe und Gemischter Salat", "Salat"];
+
+function menuKey(menu) {
+  return menu.replace(/[^A-Za-z0-9]/g, "");
+}
+
 async function loadDashboard() {
   const user = await getCurrentUser();
 
@@ -431,89 +439,62 @@ async function loadDashboard() {
 
   days.forEach(day => {
     const dateStr = formatDateLocal(day);
-    const myOrder = safeOrders.find(o => o.order_date === dateStr);
-
-    const selected = tempSelection[dateStr] || myOrder?.selected_menu;
-
-    const m1Checked = selected === "Menu 1" ? "checked" : "";
-    const m2Checked = selected === "Menu 2" ? "checked" : "";
-    const soupSaladChecked = selected === "Suppe und Gemischter Salat" ? "checked" : "";
-    const salatChecked = selected === "Salat" ? "checked" : "";
+    const myOrdersForDay = safeOrders.filter(o => o.order_date === dateStr);
 
     const tooLate = isOrderTooLate(dateStr);
     const disabled = tooLate ? "disabled" : "";
-    const hasOrder = myOrder ? "" : "disabled";
+    const hasOrder = myOrdersForDay.length > 0 ? "" : "disabled";
 
-    const currentQty = tempQty[dateStr] ?? Number(myOrder?.quantity || 1);
+    const currentQty = tempQty[dateStr] ?? Number(myOrdersForDay[0]?.quantity || 1);
+
+    const checkboxCells = MENU_LIST.map(menu => {
+      const existing = myOrdersForDay.find(o => o.selected_menu === menu);
+      const checkedAttr = existing ? "checked" : "";
+      return `
+        <td data-label="${menu}">
+          <input
+            type="checkbox"
+            id="chk_${dateStr}_${menuKey(menu)}"
+            ${checkedAttr}
+            ${disabled}
+            onclick="handleLate('${dateStr}')">
+        </td>`;
+    }).join("");
 
     table.innerHTML += `
       <tr>
         <td data-label="Tag">${getDayName(day)}</td>
         <td data-label="Datum">${formatDateDisplay(dateStr)}</td>
 
-        <td data-label="Menü 1">
-          <input 
-            type="checkbox" 
-            ${m1Checked} 
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}', 'Menu 1')">
-        </td>
-
-        <td data-label="Menü 2">
-          <input 
-            type="checkbox" 
-            ${m2Checked} 
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}', 'Menu 2')">
-        </td>
-
-        <td data-label="Suppe und Gemischter Salat">
-          <input 
-            type="checkbox" 
-            ${soupSaladChecked} 
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}', 'Suppe und Gemischter Salat')">
-        </td>
-
-        <td data-label="Salat">
-          <input 
-            type="checkbox" 
-            ${salatChecked} 
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}', 'Salat')">
-        </td>
+        ${checkboxCells}
 
         <td data-label="Anzahl">
           <div class="qty-control">
-            <button 
-              class="qty-btn" 
-              ${disabled} 
+            <button
+              class="qty-btn"
+              ${disabled}
               onclick="changeQty('${dateStr}', -1)">−</button>
 
             <span class="qty-value" id="qty_${dateStr}">${currentQty}</span>
 
-            <button 
-              class="qty-btn" 
-              ${disabled} 
+            <button
+              class="qty-btn"
+              ${disabled}
               onclick="changeQty('${dateStr}', 1)">+</button>
           </div>
         </td>
 
         <td data-label="Speichern">
-          <button 
-            class="save-btn" 
+          <button
+            class="save-btn"
             ${disabled}
             onclick="saveSelection('${dateStr}')">💾</button>
         </td>
 
         <td data-label="Abmelden">
-          <button 
-            class="delete-btn" 
-            ${hasOrder} 
+          <button
+            class="delete-btn"
+            ${hasOrder}
             ${disabled}
             onclick="cancel('${dateStr}')">✖</button>
         </td>
@@ -526,17 +507,6 @@ function handleLate(date) {
   if (isOrderTooLate(date)) {
     alert("Zu spät für die Anmeldung!\nBitte bei Sandro Ehrbar melden.");
   }
-}
-
-function selectTemp(date, menu) {
-  tempSelection[date] = menu;
-
-  if (!tempQty[date]) {
-    const qtyEl = document.getElementById(`qty_${date}`);
-    tempQty[date] = qtyEl ? Number(qtyEl.textContent) || 1 : 1;
-  }
-
-  loadDashboard();
 }
 
 function changeQty(date, delta) {
@@ -565,72 +535,75 @@ async function saveSelection(date) {
     return;
   }
 
-  let menu = tempSelection[date];
+  // Aktuellen Zustand aller 4 Checkboxen für diesen Tag auslesen
+  const checkedMenus = MENU_LIST.filter(menu => {
+    const el = document.getElementById(`chk_${date}_${menuKey(menu)}`);
+    return el && el.checked;
+  });
 
-  /*
-    Wenn bereits eine Bestellung existiert und nur die Anzahl geändert wird,
-    übernehmen wir das bestehende Menü aus Supabase.
-  */
-  if (!menu) {
-    const { data: existingOrder, error: existingError } = await supabaseClient
-      .from("orders")
-      .select("selected_menu, quantity")
-      .eq("user_id", user.id)
-      .eq("order_date", date)
-      .maybeSingle();
+  const { data: existingOrders, error: existingError } = await supabaseClient
+    .from("orders")
+    .select("selected_menu, quantity")
+    .eq("user_id", user.id)
+    .eq("order_date", date);
 
-    if (existingError) {
-      console.error("Fehler beim Prüfen der bestehenden Bestellung:", existingError);
-      alert("Fehler beim Prüfen der bestehenden Bestellung: " + existingError.message);
-      return;
-    }
-
-    if (existingOrder) {
-      menu = existingOrder.selected_menu;
-    }
+  if (existingError) {
+    console.error("Fehler beim Prüfen der bestehenden Bestellung:", existingError);
+    alert("Fehler beim Prüfen der bestehenden Bestellung: " + existingError.message);
+    return;
   }
 
-  if (!menu) {
-    alert("Bitte zuerst Menü wählen");
+  const safeExisting = existingOrders || [];
+
+  if (checkedMenus.length === 0 && safeExisting.length === 0) {
+    alert("Bitte mindestens ein Menü wählen");
     return;
   }
 
   const qtyEl = document.getElementById(`qty_${date}`);
   const qty = tempQty[date] || Number(qtyEl?.textContent) || 1;
 
-  /*
-    Wichtig:
-    Damit upsert sauber aktualisiert statt zusätzliche Zeilen zu erstellen,
-    muss in Supabase ein Unique Constraint auf user_id + order_date existieren:
+  // Jedes angehakte Menü anlegen/aktualisieren
+  const rowsToUpsert = checkedMenus.map(menu => ({
+    user_id: user.id,
+    order_date: date,
+    selected_menu: menu,
+    quantity: qty,
+    status: "ordered"
+  }));
 
-    alter table public.orders
-    add constraint unique_user_order_date unique (user_id, order_date);
-  */
-  const { data, error } = await supabaseClient
-    .from("orders")
-    .upsert(
-      {
-        user_id: user.id,
-        order_date: date,
-        selected_menu: menu,
-        quantity: qty,
-        status: "ordered"
-      },
-      {
-        onConflict: "user_id,order_date"
-      }
-    )
-    .select();
+  if (rowsToUpsert.length > 0) {
+    const { error: upsertError } = await supabaseClient
+      .from("orders")
+      .upsert(rowsToUpsert, { onConflict: "user_id,order_date,selected_menu" });
 
-  if (error) {
-    console.error("Fehler beim Speichern:", error);
-    alert("Fehler beim Speichern: " + error.message);
-    return;
+    if (upsertError) {
+      console.error("Fehler beim Speichern:", upsertError);
+      alert("Fehler beim Speichern: " + upsertError.message);
+      return;
+    }
   }
 
-  console.log("Bestellung gespeichert:", data);
+  // Zuvor gespeicherte, jetzt nicht mehr angehakte Menüs entfernen
+  const menusToRemove = safeExisting
+    .map(o => o.selected_menu)
+    .filter(menu => !checkedMenus.includes(menu));
 
-  delete tempSelection[date];
+  if (menusToRemove.length > 0) {
+    const { error: deleteError } = await supabaseClient
+      .from("orders")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("order_date", date)
+      .in("selected_menu", menusToRemove);
+
+    if (deleteError) {
+      console.error("Fehler beim Entfernen abgewählter Menüs:", deleteError);
+      alert("Fehler beim Entfernen abgewählter Menüs: " + deleteError.message);
+      return;
+    }
+  }
+
   delete tempQty[date];
 
   await loadDashboard();
@@ -662,7 +635,6 @@ async function cancel(date) {
     return;
   }
 
-  delete tempSelection[date];
   delete tempQty[date];
 
   await loadDashboard();
