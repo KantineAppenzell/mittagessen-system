@@ -269,13 +269,14 @@ input[type="checkbox"] {
 <div class="topbar">
   <button onclick="window.location.href='index.html'">⬅ Zurück</button>
   <button onclick="window.location.href='overview.html'">📋 Übersicht</button>
+  <button onclick="window.open('login.html?privacy=1','_blank')">📄 Datenschutz</button>
 </div>
 
 <div class="container">
 
   <div class="card">
     <h2>Aktuelles Menü</h2>
-    <p class="info-text">Bestellungen sind am Vortag bis 13:00 Uhr anzumelden. Wenn dies nicht möglich ist, bitte bei Sandro Ehrbar melden.</p>
+    <p class="info-text">Bestellungen sind am Vortag bis 13:00 Uhr anzumelden. Wenn dies nicht möglich ist, bitte bei der AVOR Appenzell nachfragen.</p>
     <div id="menuContainer" class="menu-pdfs"></div>
   </div>
 
@@ -505,7 +506,7 @@ async function loadDashboard() {
 
 function handleLate(date) {
   if (isOrderTooLate(date)) {
-    alert("Zu spät für die Anmeldung!\nBitte bei Sandro Ehrbar melden.");
+    alert("Zu spät für die Anmeldung!\nBitte bei der AVOR Appenzell nachfragen.");
   }
 }
 
@@ -525,7 +526,7 @@ function changeQty(date, delta) {
 
 async function saveSelection(date) {
   if (isOrderTooLate(date)) {
-    alert("Zu spät für die Anmeldung!\nBitte bei Sandro Ehrbar melden.");
+    alert("Zu spät für die Anmeldung!\nBitte bei der AVOR Appenzell nachfragen.");
     return;
   }
 

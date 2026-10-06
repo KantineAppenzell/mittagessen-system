@@ -223,7 +223,7 @@ button.main:disabled {
       <div class="consent-row">
         <input type="checkbox" id="consentCheckbox" onchange="updateRegisterButton()">
         <label for="consentCheckbox">
-          Ich habe die <a onclick="openPrivacyModal()">Datenschutzerklärung</a> gelesen und bin einverstanden.
+          Ich bestätige, dass ich die <a onclick="openPrivacyModal()">Datenschutzerklärung</a> gelesen habe.
         </label>
       </div>
 
@@ -238,7 +238,7 @@ button.main:disabled {
       <button class="main" onclick="login()">Login</button>
       <div class="forgot-box">
         Passwort vergessen? Ein Passwort-Reset per E-Mail ist aus Sicherheitsgründen nicht möglich.
-        Bitte beim Prozessverantwortlichen (Sandro Ehrbar) melden — dein Konto wird gelöscht, danach kannst du dich neu registrieren.
+        Bitte bei der AVOR Appenzell melden — dein Konto wird gelöscht, danach kannst du dich neu registrieren.
       </div>
       <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
     </div>
@@ -277,7 +277,7 @@ button.main:disabled {
     </ul>
 
     <h4>Passwort vergessen</h4>
-    <p>Es gibt bewusst keinen automatischen Passwort-Reset per E-Mail, da keine E-Mail-Adresse erhoben wird. Bei vergessenem Passwort wendest du dich an den Prozessverantwortlichen (Sandro Ehrbar); dein Konto wird dann gelöscht und du kannst dich mit einem neuen Passwort wieder registrieren.</p>
+    <p>Es gibt bewusst keinen automatischen Passwort-Reset per E-Mail, da keine E-Mail-Adresse erhoben wird. Bei vergessenem Passwort wendest du dich an die AVOR Appenzell; dein Konto wird dann gelöscht und du kannst dich mit einem neuen Passwort wieder registrieren.</p>
 
     <h4>Aufbewahrung</h4>
     <p>Bestellungen werden nach einigen Monaten automatisch gelöscht. Dein Konto bleibt bestehen, solange du das System nutzt, und wird bei Austritt oder auf Anfrage gelöscht — damit auch alle zugehörigen Bestellungen.</p>
@@ -350,7 +350,7 @@ async function register() {
   const username = (document.getElementById("username_reg").value || "").trim();
 
   if (!document.getElementById("consentCheckbox").checked) {
-    alert("Bitte die Datenschutzerklärung bestätigen, um fortzufahren.");
+    alert("Bitte bestätigen, dass du die Datenschutzerklärung gelesen hast, um fortzufahren.");
     return;
   }
 
@@ -438,6 +438,13 @@ async function login() {
   }
 
   window.location.href = "dashboard.html";
+}
+
+/* Erlaubt, die Datenschutzerklärung von jeder anderen Seite aus direkt
+   aufzurufen (Link führt auf login.html?privacy=1), ohne dass man sich
+   einloggen oder registrieren muss. */
+if (new URLSearchParams(window.location.search).get("privacy") === "1") {
+  openPrivacyModal();
 }
 </script>
 
