@@ -103,16 +103,27 @@ button:hover { background: #0f7a74; }
 <div class="wrapper">
   <div class="card">
     <h2>Admin Login</h2>
-    <input id="email" placeholder="Email" type="email">
+    <input id="username" placeholder="Benutzername" autocomplete="username">
     <input id="password" type="password" placeholder="Passwort">
     <button onclick="login()">Login</button>
   </div>
 </div>
 
 <script>
+function usernameToEmail(username) {
+  return username.trim().toLowerCase() + "@mittagessen.example.com";
+}
+
 async function login() {
+  const usernameValue = (document.getElementById("username").value || "").trim();
+
+  if (!usernameValue) {
+    alert("Bitte Benutzername eingeben");
+    return;
+  }
+
   const res = await window.supabaseClient.auth.signInWithPassword({
-    email: email.value,
+    email: usernameToEmail(usernameValue),
     password: password.value
   });
 
