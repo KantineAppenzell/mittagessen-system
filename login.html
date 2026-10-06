@@ -203,7 +203,7 @@ button.main:disabled {
 <body>
 
 <div class="topbar">
-  <button onclick="history.back()">⬅ Zurück</button>
+  <button onclick="goBack()">⬅ Zurück</button>
 </div>
 
 <div class="wrapper">
@@ -307,6 +307,18 @@ function showLogin() {
   loginBox.style.display = "block";
   registerBox.style.display = "none";
   title.innerText = "Login";
+}
+
+/* Topbar-Button "Zurück": Ist man im Registrieren-Formular, führt er erst
+   zurück auf das Login-Formular (statt gleich die Seite zu verlassen).
+   Ist man bereits im Login, verlässt er die Seite wie gewohnt. */
+function goBack() {
+  if (registerBox.style.display !== "none") {
+    showLogin();
+    return;
+  }
+
+  history.back();
 }
 
 function openPrivacyModal() {
