@@ -357,10 +357,6 @@ function updateRegisterButton() {
     !document.getElementById("consentCheckbox").checked;
 }
 
-/* Firmen-Zugangscode: verhindert, dass Aussenstehende sich registrieren.
-   Bei Bedarf hier ändern. */
-const COMPANY_ACCESS_CODE = "9050";
-
 /* Passwort-Format: genau 6 Zeichen, mit Grossbuchstabe, Kleinbuchstabe,
    Zahl und Sonderzeichen (z. B. Ab1!xy). */
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6}$/;
@@ -394,8 +390,8 @@ async function register() {
     return;
   }
 
-  if (company_code.value.trim() !== COMPANY_ACCESS_CODE) {
-    alert("Falscher Firmen-Zugangscode. Bitte beim Team erfragen.");
+  if (!company_code.value.trim()) {
+    alert("Bitte den Firmen-Zugangscode eingeben.");
     return;
   }
 

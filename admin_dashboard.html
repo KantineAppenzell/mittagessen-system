@@ -294,6 +294,18 @@ td {
   </div>
 
   <div class="card">
+    <h2>Firmen-Zugangscode</h2>
+    <p class="manual-hint">
+      Dieser Code wird bei der Registrierung abgefragt, damit sich keine betriebsfremden Personen anmelden können.
+      Hier kann er jederzeit geändert werden — bereits registrierte Konten sind davon nicht betroffen.
+    </p>
+    <div class="upload-row">
+      <input id="companyCodeInput" type="text" placeholder="Lade..." autocomplete="off" style="flex:1;min-width:0;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:15px;">
+      <button class="btn" onclick="saveCompanyCode()">💾 Speichern</button>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Zugriff / Rollen verwalten</h2>
     <p class="manual-hint">
       Hier kann einer Person die Rolle geändert werden: Mitarbeitend, Küchen-Zugriff (kueche.html)
@@ -576,6 +588,52 @@ async function setProfileRole(userId, newRole, fullName) {
   };
   alert(`Erledigt: ${fullName} hat ${resultText[newRole]}.`);
   loadKitchenAccessList();
+}
+
+async function loadCompanyCode() {
+  const input = document.getElementById("companyCodeInput");
+
+  const { data, error } = await supabaseClient
+    .from("app_settings")
+    .select("value")
+    .eq("key", "company_access_code")
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("Fehler beim Laden des Firmen-Zugangscodes:", error);
+    input.placeholder = "Fehler beim Laden";
+    return;
+  }
+
+  input.value = data.value;
+}
+
+async function saveCompanyCode() {
+  const input = document.getElementById("companyCodeInput");
+  const newCode = input.value.trim();
+
+  if (!newCode) {
+    alert("Bitte einen Firmen-Zugangscode eingeben.");
+    return;
+  }
+
+  if (!confirm(`Firmen-Zugangscode auf "${newCode}" ändern? Dies gilt sofort für alle neuen Registrierungen.`)) {
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("app_settings")
+    .update({ value: newCode, updated_at: new Date().toISOString() })
+    .eq("key", "company_access_code");
+
+  if (error) {
+    console.error("Fehler beim Ändern des Firmen-Zugangscodes:", error);
+    alert("Fehler beim Ändern: " + error.message);
+    return;
+  }
+
+  alert("Firmen-Zugangscode wurde geändert.");
+  loadCompanyCode();
 }
 
 async function loadAdminData() {
@@ -888,6 +946,7 @@ async function exportWeek() {
   loadAdminData();
   loadPDFList();
   loadKitchenAccessList();
+  loadCompanyCode();
 })();
 /* =================================================================== */
 </script>
