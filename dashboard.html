@@ -275,7 +275,7 @@ input[type="checkbox"] {
 
   <div class="card">
     <h2>Aktuelles Menü</h2>
-    <p class="info-text">Bestellungen sind am Vortag bis 13:00 Uhr anzumelden. Wenn dies nicht möglich ist, bitte unter folgender Nummer Kontakt aufnehmen: 071 795 31 16.</p>
+    <p class="info-text">Bestellungen sind am Vortag bis 13:00 Uhr anzumelden. Wenn dies nicht möglich ist, bitte bei Sandro Ehrbar melden.</p>
     <div id="menuContainer" class="menu-pdfs"></div>
   </div>
 
@@ -524,7 +524,7 @@ async function loadDashboard() {
 
 function handleLate(date) {
   if (isOrderTooLate(date)) {
-    alert("Zu spät für die Anmeldung!\nBitte melde dich unter: 0717953116");
+    alert("Zu spät für die Anmeldung!\nBitte bei Sandro Ehrbar melden.");
   }
 }
 
@@ -555,7 +555,7 @@ function changeQty(date, delta) {
 
 async function saveSelection(date) {
   if (isOrderTooLate(date)) {
-    alert("Zu spät für die Anmeldung!\nBitte melde dich unter: 0717953116");
+    alert("Zu spät für die Anmeldung!\nBitte bei Sandro Ehrbar melden.");
     return;
   }
 
