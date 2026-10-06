@@ -333,6 +333,11 @@ const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6}$
 /* Benutzername: 3-20 Zeichen, nur Buchstaben, Zahlen, Punkt, Binde-/Unterstrich. */
 const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,20}$/;
 
+/* Gleiche Projekt-URL/Key wie in supabase.js, für den Aufruf der Registrierungs-
+   Funktion (Edge Function), die Konten serverseitig anlegt. */
+const SUPABASE_FUNCTIONS_URL = "https://vvjhlxqaawxktgtypuro.supabase.co/functions/v1";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_N_pSnotQSgE8TYs5P3wVHg_i7fYx1my";
+
 /* Es gibt keine echte E-Mail-Adresse mehr. Supabase Auth benötigt aber technisch
    ein E-Mail-Feld, deshalb wird intern eine nicht existierende Platzhalter-Adresse
    aus dem Benutzernamen gebildet. Diese wird nirgends angezeigt und nie verwendet,
@@ -364,47 +369,42 @@ async function register() {
     return;
   }
 
-  const email = usernameToEmail(username);
+  const registerBtn = document.getElementById("registerBtn");
+  registerBtn.disabled = true;
 
-  const { data, error } = await window.supabaseClient.auth.signUp({
-    email: email,
-    password: password_reg.value
-  });
-
-  if (error) {
-    if (error.message && /already registered|already exists|already been registered/i.test(error.message)) {
-      alert("Dieser Benutzername ist schon vorhanden. Bitte einen anderen wählen.");
-    } else {
-      alert("Fehler bei der Registrierung: " + error.message);
-    }
+  let response;
+  try {
+    response = await fetch(SUPABASE_FUNCTIONS_URL + "/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": "Bearer " + SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password_reg.value,
+        company_code: company_code.value.trim()
+      })
+    });
+  } catch (networkError) {
+    alert("Verbindung zum Server fehlgeschlagen. Bitte später erneut versuchen.");
+    registerBtn.disabled = false;
     return;
   }
 
-  const user = data.user ?? data.session?.user;
+  let result = {};
+  try { result = await response.json(); } catch {}
 
-  if (!user) { alert("User konnte nicht ermittelt werden"); return; }
+  registerBtn.disabled = false;
 
-  const existingProfile = await window.supabaseClient
-    .from("profiles").select("*").eq("id", user.id).maybeSingle();
-
-  if (existingProfile.data) {
-    alert("Profil existiert bereits → bitte Login verwenden");
-    return;
-  }
-
-  const { error: insertError } = await window.supabaseClient
-    .from("profiles")
-    .insert([{
-      id: user.id,
-      username: username,
-      full_name: username
-    }]);
-
-  if (insertError) {
-    if (insertError.message && /duplicate|unique/i.test(insertError.message)) {
+  if (!response.ok) {
+    if (result.error === "USERNAME_TAKEN") {
       alert("Dieser Benutzername ist schon vorhanden. Bitte einen anderen wählen.");
+    } else if (result.error === "Falscher Firmen-Zugangscode.") {
+      alert("Falscher Firmen-Zugangscode. Bitte beim Team erfragen.");
     } else {
-      alert("Fehler beim Speichern des Profils: " + insertError.message);
+      alert("Fehler bei der Registrierung: " + (result.error || "Unbekannter Fehler"));
     }
     return;
   }
