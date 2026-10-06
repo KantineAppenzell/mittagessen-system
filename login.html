@@ -103,11 +103,15 @@ button.main:disabled {
   color: #14968F;
 }
 
-.forgot {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #14968F;
-  cursor: pointer;
+.forgot-box {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #555;
+  text-align: left;
+  background: #f4f4f4;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.4;
 }
 
 /* ---- Datenschutz-Zustimmung (nur bei Registrierung) ---- */
@@ -209,13 +213,11 @@ button.main:disabled {
 
     <!-- REGISTRIERUNG -->
     <div id="registerBox" style="display:none;">
-      <input id="firstname" placeholder="Vorname">
-      <input id="lastname" placeholder="Nachname">
-      <input id="email_reg" placeholder="Email" type="email" onblur="checkBlockedEmailField()">
-      <input id="password_reg" type="password" placeholder="Passwort (z. B. AP1234)" maxlength="6">
+      <input id="username_reg" placeholder="Benutzername" maxlength="20" autocomplete="off">
+      <input id="password_reg" type="password" placeholder="Passwort (6 Zeichen)" maxlength="6">
       <input id="company_code" type="password" placeholder="Firmen-Zugangscode" autocomplete="off">
       <p style="font-size:12px;color:#888;text-align:left;margin:4px 2px 0;">
-        Format: AP + 4 Ziffern, z. B. AP1234. Bitte keinen Code verwenden, den du bereits woanders nutzt.
+        Passwort: genau 6 Zeichen, mit Grossbuchstabe, Kleinbuchstabe, Zahl und Sonderzeichen (Beispiel: Ab1!xy). Bitte keinen Code verwenden, den du bereits woanders nutzt.
       </p>
 
       <div class="consent-row">
@@ -231,10 +233,13 @@ button.main:disabled {
 
     <!-- LOGIN -->
     <div id="loginBox">
-      <input id="email" placeholder="Email" type="email">
-      <input id="password" type="password" placeholder="Passwort">
+      <input id="username" placeholder="Benutzername" autocomplete="username">
+      <input id="password" type="password" placeholder="Passwort" autocomplete="current-password">
       <button class="main" onclick="login()">Login</button>
-      <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
+      <div class="forgot-box">
+        Passwort vergessen? Ein Passwort-Reset per E-Mail ist aus Sicherheitsgründen nicht möglich.
+        Bitte beim Prozessverantwortlichen (Sandro Ehrbar) melden — dein Konto wird gelöscht, danach kannst du dich neu registrieren.
+      </div>
       <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
     </div>
 
@@ -249,12 +254,11 @@ button.main:disabled {
     <h4>Welche Daten wir bearbeiten</h4>
     <p>Bei der Registrierung und Nutzung dieses Bestellsystems speichern wir:</p>
     <ul>
-      <li>Vorname und Nachname</li>
-      <li>E-Mail-Adresse (Login und «Passwort vergessen»)</li>
+      <li>Benutzername (frei wählbar, kein Klarname oder E-Mail-Adresse erforderlich)</li>
       <li>Passwort (verschlüsselt, für uns nicht einsehbar)</li>
       <li>Bestellungen: Datum, gewähltes Menü, Anzahl</li>
     </ul>
-    <p>Es werden bewusst keine weiteren Angaben erhoben, insbesondere keine Gesundheitsdaten wie Allergien.</p>
+    <p>Es wird bewusst keine E-Mail-Adresse und keine weiteren Angaben erhoben, insbesondere keine Gesundheitsdaten wie Allergien.</p>
 
     <h4>Zweck</h4>
     <p>Die Daten dienen ausschliesslich der Organisation der Mittagessen-Bestellung, damit die Küche weiss, wie viele Menüs zuzubereiten sind, und Bestellungen korrekt zugeordnet werden können. Keine Nutzung für andere Zwecke wie Anwesenheitskontrolle.</p>
@@ -262,7 +266,7 @@ button.main:disabled {
     <h4>Wer Zugriff hat</h4>
     <ul>
       <li>Du selbst siehst ausschliesslich deine eigenen Bestellungen.</li>
-      <li>Das Küchenpersonal sieht nur Datum, Name, Menü und Anzahl der anstehenden Bestellungen.</li>
+      <li>Das Küchenpersonal sieht nur Datum, Benutzername, Menü und Anzahl der anstehenden Bestellungen.</li>
       <li>Die Administration sieht alle Bestellungen zur Organisation.</li>
     </ul>
 
@@ -270,11 +274,13 @@ button.main:disabled {
     <ul>
       <li><strong>Supabase</strong> (Datenbank und Login), USA/EU-Region — verarbeitet in unserem Auftrag.</li>
       <li><strong>GitHub Pages</strong> (Hosting dieser Webseite), USA — verarbeitet technische Zugriffsdaten (z. B. IP-Adresse).</li>
-      <li>Unser <strong>E-Mail-Dienst</strong> für den Versand von «Passwort vergessen» — verarbeitet nur deine E-Mail-Adresse.</li>
     </ul>
 
+    <h4>Passwort vergessen</h4>
+    <p>Es gibt bewusst keinen automatischen Passwort-Reset per E-Mail, da keine E-Mail-Adresse erhoben wird. Bei vergessenem Passwort wendest du dich an den Prozessverantwortlichen (Sandro Ehrbar); dein Konto wird dann gelöscht und du kannst dich mit einem neuen Passwort wieder registrieren.</p>
+
     <h4>Aufbewahrung</h4>
-    <p>Bestellungen werden nach einigen Monaten automatisch gelöscht. Dein Konto bleibt bestehen, solange du das System nutzt, und wird bei Austritt gelöscht — damit auch alle zugehörigen Bestellungen.</p>
+    <p>Bestellungen werden nach einigen Monaten automatisch gelöscht. Dein Konto bleibt bestehen, solange du das System nutzt, und wird bei Austritt oder auf Anfrage gelöscht — damit auch alle zugehörigen Bestellungen.</p>
 
     <h4>Deine Rechte</h4>
     <p>Du kannst jederzeit Auskunft über deine gespeicherten Daten, deren Berichtigung oder die Löschung deines Kontos verlangen. Wende dich dazu an die Administration dieses Systems.</p>
@@ -316,41 +322,35 @@ function updateRegisterButton() {
     !document.getElementById("consentCheckbox").checked;
 }
 
-/* Gesperrte Domains für die Registrierung (Kleinbuchstaben, ohne @).
-   Ergänzen, falls weitere Firmen-Domains gesperrt werden sollen. */
-const BLOCKED_EMAIL_DOMAINS = ["firma-privat.example.com"];
-
-function isBlockedEmail(value) {
-  const email = (value || "").trim().toLowerCase();
-  const atIndex = email.lastIndexOf("@");
-  if (atIndex === -1) return false;
-  const domain = email.slice(atIndex + 1);
-  return BLOCKED_EMAIL_DOMAINS.some(blocked => domain === blocked || domain.endsWith("." + blocked));
-}
-
 /* Firmen-Zugangscode: verhindert, dass Aussenstehende sich registrieren.
    Bei Bedarf hier ändern. */
 const COMPANY_ACCESS_CODE = "9050";
 
-/* Passwort-Format: "AP" gefolgt von genau 4 Ziffern, z. B. AP1234 (Gross-/Kleinschreibung egal). */
-const PASSWORD_PATTERN = /^AP\d{4}$/i;
+/* Passwort-Format: genau 6 Zeichen, mit Grossbuchstabe, Kleinbuchstabe,
+   Zahl und Sonderzeichen (z. B. Ab1!xy). */
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6}$/;
 
-function checkBlockedEmailField() {
-  if (isBlockedEmail(email_reg.value)) {
-    alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@firma-privat.example.com).");
-    email_reg.value = "";
-    email_reg.focus();
-  }
+/* Benutzername: 3-20 Zeichen, nur Buchstaben, Zahlen, Punkt, Binde-/Unterstrich. */
+const USERNAME_PATTERN = /^[A-Za-z0-9._-]{3,20}$/;
+
+/* Es gibt keine echte E-Mail-Adresse mehr. Supabase Auth benötigt aber technisch
+   ein E-Mail-Feld, deshalb wird intern eine nicht existierende Platzhalter-Adresse
+   aus dem Benutzernamen gebildet. Diese wird nirgends angezeigt und nie verwendet,
+   um Mails zu senden. */
+function usernameToEmail(username) {
+  return username.trim().toLowerCase() + "@mittagessen.local";
 }
 
 async function register() {
+  const username = (document.getElementById("username_reg").value || "").trim();
+
   if (!document.getElementById("consentCheckbox").checked) {
     alert("Bitte die Datenschutzerklärung bestätigen, um fortzufahren.");
     return;
   }
 
-  if (isBlockedEmail(email_reg.value)) {
-    alert("Bitte eine private E-Mail-Adresse verwenden, keine Bühler-Adresse (@firma-privat.example.com).");
+  if (!USERNAME_PATTERN.test(username)) {
+    alert("Benutzername: 3 bis 20 Zeichen, nur Buchstaben, Zahlen, Punkt, - oder _.");
     return;
   }
 
@@ -360,32 +360,27 @@ async function register() {
   }
 
   if (!PASSWORD_PATTERN.test(password_reg.value)) {
-    alert("Das Passwort muss mit AP beginnen, gefolgt von genau 4 Ziffern (Beispiel: AP1234).");
+    alert("Das Passwort muss genau 6 Zeichen lang sein und Grossbuchstabe, Kleinbuchstabe, Zahl und Sonderzeichen enthalten (Beispiel: Ab1!xy).");
     return;
   }
 
-  if (!firstname.value || !lastname.value) {
-    alert("Bitte Vor- und Nachname eingeben");
-    return;
-  }
+  const email = usernameToEmail(username);
 
   const { data, error } = await window.supabaseClient.auth.signUp({
-    email: email_reg.value,
+    email: email,
     password: password_reg.value
   });
 
-  let user = null;
-  if (!error) user = data.user ?? data.session?.user;
-
-  if (error && error.message.includes("already registered")) {
-    alert("User existiert bereits → Profil wird ergänzt");
-    const loginRes = await window.supabaseClient.auth.signInWithPassword({
-      email: email_reg.value,
-      password: password_reg.value
-    });
-    if (loginRes.error) { alert("Passwort falsch → bitte Login verwenden"); return; }
-    user = loginRes.data.user;
+  if (error) {
+    if (error.message && /already registered|already exists|already been registered/i.test(error.message)) {
+      alert("Dieser Benutzername ist schon vorhanden. Bitte einen anderen wählen.");
+    } else {
+      alert("Fehler bei der Registrierung: " + error.message);
+    }
+    return;
   }
+
+  const user = data.user ?? data.session?.user;
 
   if (!user) { alert("User konnte nicht ermittelt werden"); return; }
 
@@ -401,24 +396,37 @@ async function register() {
     .from("profiles")
     .insert([{
       id: user.id,
-      first_name: firstname.value,
-      last_name: lastname.value,
-      full_name: firstname.value + " " + lastname.value
+      username: username,
+      full_name: username
     }]);
 
-  if (insertError) { alert("Fehler beim Speichern Profil"); return; }
+  if (insertError) {
+    if (insertError.message && /duplicate|unique/i.test(insertError.message)) {
+      alert("Dieser Benutzername ist schon vorhanden. Bitte einen anderen wählen.");
+    } else {
+      alert("Fehler beim Speichern des Profils: " + insertError.message);
+    }
+    return;
+  }
 
-  alert("Profil erfolgreich erstellt!");
+  alert("Konto erfolgreich erstellt!");
   showLogin();
 }
 
 async function login() {
+  const usernameValue = (document.getElementById("username").value || "").trim();
+
+  if (!usernameValue) {
+    alert("Bitte Benutzername eingeben");
+    return;
+  }
+
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-    email: email.value,
+    email: usernameToEmail(usernameValue),
     password: password.value
   });
 
-  if (error) { alert("Email oder Passwort falsch!"); return; }
+  if (error) { alert("Benutzername oder Passwort falsch!"); return; }
 
   const profile = await window.supabaseClient
     .from("profiles").select("*").eq("id", data.user.id).single();
@@ -430,17 +438,6 @@ async function login() {
   }
 
   window.location.href = "dashboard.html";
-}
-
-async function resetPassword() {
-  if (!email.value) { alert("Bitte Email eingeben!"); return; }
-
-  const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email.value, {
-    redirectTo: "https://KantineAppenzell.github.io/mittagessen-system/reset.html"
-  });
-
-  if (error) alert("Fehler: " + error.message);
-  else alert("Email zum Zurücksetzen wurde gesendet!");
 }
 </script>
 
