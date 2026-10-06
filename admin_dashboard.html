@@ -289,10 +289,10 @@ td {
   </div>
 
   <div class="card">
-    <h2>Küchen-Zugriff verwalten</h2>
+    <h2>Zugriff / Rollen verwalten</h2>
     <p class="manual-hint">
-      Hier kann einer Person Zugriff auf die Küchenansicht (kueche.html) gegeben oder wieder entzogen werden.
-      Admin-Konten werden hier bewusst nicht aufgeführt.
+      Hier kann einer Person die Rolle geändert werden: Mitarbeitend, Küchen-Zugriff (kueche.html)
+      oder Admin (voller Zugriff auf dieses Dashboard). Vorsicht beim Entfernen der eigenen Admin-Rolle.
     </p>
     <div id="kitchenAccessList">Lade...</div>
   </div>
@@ -499,7 +499,6 @@ async function loadKitchenAccessList() {
   const { data, error } = await supabaseClient
     .from("profiles")
     .select("id, full_name, role")
-    .neq("role", "admin")
     .order("full_name", { ascending: true });
 
   const container = document.getElementById("kitchenAccessList");
@@ -531,6 +530,7 @@ async function loadKitchenAccessList() {
     select.innerHTML = `
       <option value="employee"${p.role === "employee" ? " selected" : ""}>Mitarbeitend (kein Küchen-Zugriff)</option>
       <option value="kitchen"${p.role === "kitchen" ? " selected" : ""}>Küchen-Zugriff</option>
+      <option value="admin"${p.role === "admin" ? " selected" : ""}>Admin</option>
     `;
     select.onchange = () => setProfileRole(p.id, select.value, p.full_name);
 
@@ -541,9 +541,13 @@ async function loadKitchenAccessList() {
 }
 
 async function setProfileRole(userId, newRole, fullName) {
-  const label = newRole === "kitchen" ? "Küchen-Zugriff geben" : "Küchen-Zugriff entziehen";
+  const labels = {
+    employee: "auf Mitarbeitend (kein Küchen-/Admin-Zugriff) setzen",
+    kitchen: "Küchen-Zugriff geben",
+    admin: "zu Admin hochstufen"
+  };
 
-  if (!confirm(`${label} für ${fullName}?`)) {
+  if (!confirm(`${fullName} ${labels[newRole]}?`)) {
     loadKitchenAccessList();
     return;
   }
@@ -560,7 +564,12 @@ async function setProfileRole(userId, newRole, fullName) {
     return;
   }
 
-  alert(`Erledigt: ${fullName} hat jetzt ${newRole === "kitchen" ? "Küchen-Zugriff" : "keinen Küchen-Zugriff"}.`);
+  const resultText = {
+    employee: "keinen Küchen-/Admin-Zugriff mehr",
+    kitchen: "jetzt Küchen-Zugriff",
+    admin: "jetzt Admin-Zugriff"
+  };
+  alert(`Erledigt: ${fullName} hat ${resultText[newRole]}.`);
   loadKitchenAccessList();
 }
 
